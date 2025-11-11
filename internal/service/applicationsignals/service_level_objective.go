@@ -178,16 +178,37 @@ func (r *resourceServiceLevelObjective) Schema(ctx context.Context, req resource
 				CustomType: fwtypes.NewListNestedObjectTypeOf[burnRateConfigurationModel](ctx),
 				NestedObject: schema.NestedBlockObject{
 					Attributes: map[string]schema.Attribute{
-						"look_back_window_minutes": schema.Int32Attribute{Computed: true},
+						"look_back_window_minutes": schema.Int32Attribute{Optional: true},
 					},
 				},
 			},
 			"request_based_sli": schema.SingleNestedBlock{
 				CustomType: fwtypes.NewObjectTypeOf[requestBasedSliModel](ctx),
+				Attributes: map[string]schema.Attribute{
+					"metric_threshold":    schema.Float64Attribute{Computed: true},
+					"comparison_operator": schema.StringAttribute{Computed: true},
+				},
+				Blocks: map[string]schema.Block{
+					"request_based_sli_metric": schema.SingleNestedBlock{
+						CustomType: fwtypes.NewObjectTypeOf[requestBasedSliMetricModel](ctx),
+						Attributes: map[string]schema.Attribute{
+							"dependency_config": schema.StringAttribute{Computed: true},
+							"key_attributes":    schema.MapAttribute{CustomType: fwtypes.MapOfStringType, ElementType: types.StringType, Computed: true},
+							"metric_type":       schema.StringAttribute{Computed: true},
+							"operation_name":    schema.StringAttribute{Computed: true},
+						},
+						Blocks: map[string]schema.Block{
+							"total_request_count_metric": metricDataQueriesBlock(ctx),
+						},
+					},
+				},
+			},
+			"request_based_sli_config": schema.SingleNestedBlock{
+				CustomType: fwtypes.NewObjectTypeOf[requestBasedSliConfigModel](ctx),
 				Validators: []validator.Object{
 					objectvalidator.ExactlyOneOf(
 						path.Expressions{
-							path.MatchRelative().AtParent().AtName("sli"),
+							path.MatchRelative().AtParent().AtName("sli_config"),
 						}...),
 				},
 				Attributes: map[string]schema.Attribute{
@@ -211,12 +232,6 @@ func (r *resourceServiceLevelObjective) Schema(ctx context.Context, req resource
 			},
 			"sli": schema.SingleNestedBlock{
 				CustomType: fwtypes.NewObjectTypeOf[sliModel](ctx),
-				Validators: []validator.Object{
-					objectvalidator.ExactlyOneOf(
-						path.Expressions{
-							path.MatchRelative().AtParent().AtName("request_based_sli"),
-						}...),
-				},
 				Attributes: map[string]schema.Attribute{
 					"metric_threshold":    schema.Float64Attribute{Computed: true},
 					"comparison_operator": schema.StringAttribute{Computed: true},
@@ -229,6 +244,36 @@ func (r *resourceServiceLevelObjective) Schema(ctx context.Context, req resource
 							"key_attributes":    schema.MapAttribute{CustomType: fwtypes.MapOfStringType, ElementType: types.StringType, Computed: true},
 							"metric_type":       schema.StringAttribute{Computed: true},
 							"operation_name":    schema.StringAttribute{Computed: true},
+						},
+						Blocks: map[string]schema.Block{
+							"metric_data_queries": metricDataQueriesBlock(ctx),
+						},
+					},
+				},
+			},
+			"sli_config": schema.SingleNestedBlock{
+				CustomType: fwtypes.NewObjectTypeOf[sliConfigModel](ctx),
+				Validators: []validator.Object{
+					objectvalidator.ExactlyOneOf(
+						path.Expressions{
+							path.MatchRelative().AtParent().AtName("request_based_sli_config"),
+						}...),
+				},
+				Attributes: map[string]schema.Attribute{
+					"metric_threshold":    schema.Float64Attribute{Optional: true},
+					"comparison_operator": schema.StringAttribute{Optional: true},
+				},
+				Blocks: map[string]schema.Block{
+					"sli_metric_config": schema.SingleNestedBlock{
+						CustomType: fwtypes.NewObjectTypeOf[sliMetricConfigModel](ctx),
+						Attributes: map[string]schema.Attribute{
+							"dependency_config": schema.StringAttribute{Optional: true},
+							"key_attributes":    schema.MapAttribute{CustomType: fwtypes.MapOfStringType, ElementType: types.StringType, Optional: true},
+							"metric_type":       schema.StringAttribute{Optional: true},
+							"metric_name":       schema.StringAttribute{Optional: true},
+							"operation_name":    schema.StringAttribute{Optional: true},
+							"period_seconds":    schema.Int32Attribute{Optional: true},
+							"statistic":         schema.StringAttribute{Optional: true},
 						},
 						Blocks: map[string]schema.Block{
 							"metric_data_queries": metricDataQueriesBlock(ctx),
@@ -714,6 +759,8 @@ type resourceServiceLevelObjectiveModel struct {
 	Sli                    fwtypes.ObjectValueOf[sliModel]                             `tfsdk:"sli"`
 	RequestBasedSli        fwtypes.ObjectValueOf[requestBasedSliModel]                 `tfsdk:"request_based_sli"`
 	Timeouts               timeouts.Value                                              `tfsdk:"timeouts"`
+	SliConfig              fwtypes.ObjectValueOf[sliConfigModel]                       `tfsdk:"sli_config"`
+	RequestBasedSliConfig  fwtypes.ObjectValueOf[requestBasedSliConfigModel]           `tfsdk:"request_based_sli_config"`
 }
 
 type goalModel struct {
@@ -744,7 +791,18 @@ type sliModel struct {
 	SliMetric          fwtypes.ObjectValueOf[sliMetricModel] `tfsdk:"sli_metric"`
 }
 
+type sliConfigModel struct {
+	ComparisonOperator types.String                                `tfsdk:"comparison_operator"`
+	MetricThreshold    types.Float64                               `tfsdk:"metric_threshold"`
+	SliMetricConfig    fwtypes.ObjectValueOf[sliMetricConfigModel] `tfsdk:"sli_metric_config"`
+}
+
 type requestBasedSliModel struct {
+	RequestBasedSliMetric fwtypes.ObjectValueOf[requestBasedSliMetricModel] `tfsdk:"request_based_sli_metric"`
+	ComparisonOperator    types.String                                      `tfsdk:"comparison_operator"`
+	MetricThreshold       types.Float64                                     `tfsdk:"metric_threshold"`
+}
+type requestBasedSliConfigModel struct {
 	RequestBasedSliMetric fwtypes.ObjectValueOf[requestBasedSliMetricModel] `tfsdk:"request_based_sli_metric"`
 	ComparisonOperator    types.String                                      `tfsdk:"comparison_operator"`
 	MetricThreshold       types.Float64                                     `tfsdk:"metric_threshold"`
@@ -768,6 +826,17 @@ type sliMetricModel struct {
 	KeyAttributes     fwtypes.MapOfString                                   `tfsdk:"key_attributes"`
 	MetricType        types.String                                          `tfsdk:"metric_type"`
 	OperationName     types.String                                          `tfsdk:"operation_name"`
+}
+
+type sliMetricConfigModel struct {
+	MetricDataQueries fwtypes.ListNestedObjectValueOf[metricDataQueryModel] `tfsdk:"metric_data_queries"`
+	DependencyConfig  fwtypes.ObjectValueOf[dependencyConfigModel]          `tfsdk:"dependency_config"`
+	KeyAttributes     fwtypes.MapOfString                                   `tfsdk:"key_attributes"`
+	MetricName        types.String                                          `tfsdk:"metric_name"`
+	MetricType        types.String                                          `tfsdk:"metric_type"`
+	OperationName     types.String                                          `tfsdk:"operation_name"`
+	PeriodSeconds     types.Int32                                           `tfsdk:"period_seconds"`
+	Statistic         types.Int32                                           `tfsdk:"statistic"`
 }
 
 type metricDataQueryModel struct {
