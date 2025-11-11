@@ -267,16 +267,18 @@ func (r *resourceServiceLevelObjective) Schema(ctx context.Context, req resource
 					"sli_metric_config": schema.SingleNestedBlock{
 						CustomType: fwtypes.NewObjectTypeOf[sliMetricConfigModel](ctx),
 						Attributes: map[string]schema.Attribute{
-							"dependency_config": schema.StringAttribute{Optional: true},
-							"key_attributes":    schema.MapAttribute{CustomType: fwtypes.MapOfStringType, ElementType: types.StringType, Optional: true},
-							"metric_type":       schema.StringAttribute{Optional: true},
-							"metric_name":       schema.StringAttribute{Optional: true},
-							"operation_name":    schema.StringAttribute{Optional: true},
-							"period_seconds":    schema.Int32Attribute{Optional: true},
-							"statistic":         schema.StringAttribute{Optional: true},
+							"key_attributes": schema.MapAttribute{CustomType: fwtypes.MapOfStringType, ElementType: types.StringType, Optional: true},
+							"metric_type":    schema.StringAttribute{Optional: true},
+							"metric_name":    schema.StringAttribute{Optional: true},
+							"operation_name": schema.StringAttribute{Optional: true},
+							"period_seconds": schema.Int32Attribute{Optional: true},
+							"statistic":      schema.StringAttribute{Optional: true},
 						},
 						Blocks: map[string]schema.Block{
 							"metric_data_queries": metricDataQueriesBlock(ctx),
+							"dependency_config": schema.SingleNestedBlock{
+								CustomType: fwtypes.NewObjectTypeOf[dependencyConfigModel](ctx),
+							},
 						},
 					},
 				},
@@ -744,6 +746,42 @@ func (m *intervalModel) Flatten(ctx context.Context, v any) diag.Diagnostics {
 	return diags
 }
 
+func (m intervalModel) Expand(ctx context.Context) (result any, diags diag.Diagnostics) {
+	switch {
+	case !m.RollingInterval.IsNull():
+		rollingData, d := m.RollingInterval.ToPtr(ctx)
+		diags.Append(d...)
+		if diags.HasError() {
+			return nil, diags
+		}
+
+		var r awstypes.IntervalMemberRollingInterval
+		diags.Append(flex.Expand(ctx, rollingData, &r.Value)...)
+		if diags.HasError() {
+			return nil, diags
+		}
+
+		return &r, diags
+
+	case !m.CalendarInterval.IsNull():
+		calendarData, d := m.CalendarInterval.ToPtr(ctx)
+		diags.Append(d...)
+		if diags.HasError() {
+			return nil, diags
+		}
+
+		var r awstypes.IntervalMemberCalendarInterval
+		diags.Append(flex.Expand(ctx, calendarData, &r.Value)...)
+		if diags.HasError() {
+			return nil, diags
+		}
+
+		return &r, diags
+	}
+
+	return nil, diags
+}
+
 type resourceServiceLevelObjectiveModel struct {
 	framework.WithRegionModel
 	ID                     types.String                                                `tfsdk:"id"`
@@ -836,7 +874,7 @@ type sliMetricConfigModel struct {
 	MetricType        types.String                                          `tfsdk:"metric_type"`
 	OperationName     types.String                                          `tfsdk:"operation_name"`
 	PeriodSeconds     types.Int32                                           `tfsdk:"period_seconds"`
-	Statistic         types.Int32                                           `tfsdk:"statistic"`
+	Statistic         types.String                                          `tfsdk:"statistic"`
 }
 
 type metricDataQueryModel struct {
