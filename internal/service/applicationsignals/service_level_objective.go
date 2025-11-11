@@ -298,27 +298,27 @@ func metricDataQueriesBlock(ctx context.Context) schema.ListNestedBlock {
 		NestedObject: schema.NestedBlockObject{
 			CustomType: fwtypes.NewObjectTypeOf[metricDataQueryModel](ctx),
 			Attributes: map[string]schema.Attribute{
-				"id":          schema.StringAttribute{Computed: true},
+				"id":          schema.StringAttribute{Optional: true},
 				"account_id":  schema.StringAttribute{Computed: true},
-				"expression":  schema.StringAttribute{Computed: true},
-				"label":       schema.StringAttribute{Computed: true},
-				"period":      schema.Int32Attribute{Computed: true},
-				"return_data": schema.BoolAttribute{Computed: true},
+				"expression":  schema.StringAttribute{Optional: true},
+				"label":       schema.StringAttribute{Optional: true},
+				"period":      schema.Int32Attribute{Optional: true},
+				"return_data": schema.BoolAttribute{Optional: true},
 			},
 			Blocks: map[string]schema.Block{
 				"metric_stat": schema.SingleNestedBlock{
 					CustomType: fwtypes.NewObjectTypeOf[metricStatModel](ctx),
 					Attributes: map[string]schema.Attribute{
-						"period": schema.Int32Attribute{Computed: true},
-						"stat":   schema.StringAttribute{Computed: true},
-						"unit":   schema.StringAttribute{Computed: true},
+						"period": schema.Int32Attribute{Optional: true},
+						"stat":   schema.StringAttribute{Optional: true},
+						"unit":   schema.StringAttribute{Optional: true},
 					},
 					Blocks: map[string]schema.Block{
 						"metric": schema.SingleNestedBlock{
 							CustomType: fwtypes.NewObjectTypeOf[metricModel](ctx),
 							Attributes: map[string]schema.Attribute{
-								"metric_name": schema.StringAttribute{Computed: true},
-								"namespace":   schema.StringAttribute{Computed: true},
+								"metric_name": schema.StringAttribute{Optional: true},
+								"namespace":   schema.StringAttribute{Optional: true},
 							},
 							Blocks: map[string]schema.Block{
 								"dimensions": schema.ListNestedBlock{
