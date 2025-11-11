@@ -113,9 +113,6 @@ func (r *resourceServiceLevelObjective) Schema(ctx context.Context, req resource
 			"evaluation_type": schema.StringAttribute{
 				Computed: true,
 			},
-			"id": schema.StringAttribute{
-				Computed: true,
-			},
 			"last_updated_time": schema.StringAttribute{
 				Computed: true,
 			},
@@ -394,7 +391,7 @@ func (r *resourceServiceLevelObjective) Create(ctx context.Context, req resource
 
 	// TIP: -- 6. Use a waiter to wait for create to complete
 	createTimeout := r.CreateTimeout(ctx, plan.Timeouts)
-	_, err = waitServiceLevelObjectiveCreated(ctx, conn, plan.ID.ValueString(), createTimeout)
+	_, err = waitServiceLevelObjectiveCreated(ctx, conn, plan.Name.ValueString(), createTimeout)
 	if err != nil {
 		smerr.AddError(ctx, &resp.Diagnostics, err, smerr.ID, plan.Name.String())
 		return
@@ -428,7 +425,7 @@ func (r *resourceServiceLevelObjective) Read(ctx context.Context, req resource.R
 
 	// TIP: -- 3. Get the resource from AWS using an API Get, List, or Describe-
 	// type function, or, better yet, using a finder.
-	out, err := findServiceLevelObjectiveByID(ctx, conn, state.ID.ValueString())
+	out, err := findServiceLevelObjectiveByID(ctx, conn, state.Name.ValueString())
 	// TIP: -- 4. Remove resource from state if it is not found
 	if tfresource.NotFound(err) {
 		resp.Diagnostics.Append(fwdiag.NewResourceNotFoundWarningDiagnostic(err))
@@ -436,7 +433,7 @@ func (r *resourceServiceLevelObjective) Read(ctx context.Context, req resource.R
 		return
 	}
 	if err != nil {
-		smerr.AddError(ctx, &resp.Diagnostics, err, smerr.ID, state.ID.String())
+		smerr.AddError(ctx, &resp.Diagnostics, err, smerr.ID, state.Name.String())
 		return
 	}
 
@@ -499,11 +496,11 @@ func (r *resourceServiceLevelObjective) Update(ctx context.Context, req resource
 		// TIP: -- 4. Call the AWS modify/update function
 		out, err := conn.UpdateServiceLevelObjective(ctx, &input)
 		if err != nil {
-			smerr.AddError(ctx, &resp.Diagnostics, err, smerr.ID, plan.ID.String())
+			smerr.AddError(ctx, &resp.Diagnostics, err, smerr.ID, plan.Name.String())
 			return
 		}
 		if out == nil || out.Slo == nil {
-			smerr.AddError(ctx, &resp.Diagnostics, errors.New("empty output"), smerr.ID, plan.ID.String())
+			smerr.AddError(ctx, &resp.Diagnostics, errors.New("empty output"), smerr.ID, plan.Name.String())
 			return
 		}
 
@@ -516,9 +513,9 @@ func (r *resourceServiceLevelObjective) Update(ctx context.Context, req resource
 
 	// TIP: -- 5. Use a waiter to wait for update to complete
 	updateTimeout := r.UpdateTimeout(ctx, plan.Timeouts)
-	_, err := waitServiceLevelObjectiveUpdated(ctx, conn, plan.ID.ValueString(), updateTimeout)
+	_, err := waitServiceLevelObjectiveUpdated(ctx, conn, plan.Name.ValueString(), updateTimeout)
 	if err != nil {
-		smerr.AddError(ctx, &resp.Diagnostics, err, smerr.ID, plan.ID.String())
+		smerr.AddError(ctx, &resp.Diagnostics, err, smerr.ID, plan.Name.String())
 		return
 	}
 
@@ -554,7 +551,7 @@ func (r *resourceServiceLevelObjective) Delete(ctx context.Context, req resource
 
 	// TIP: -- 3. Populate a delete input structure
 	input := applicationsignals.DeleteServiceLevelObjectiveInput{
-		Id: state.ID.ValueStringPointer(),
+		Id: state.Name.ValueStringPointer(),
 	}
 
 	// TIP: -- 4. Call the AWS delete function
@@ -566,15 +563,15 @@ func (r *resourceServiceLevelObjective) Delete(ctx context.Context, req resource
 			return
 		}
 
-		smerr.AddError(ctx, &resp.Diagnostics, err, smerr.ID, state.ID.String())
+		smerr.AddError(ctx, &resp.Diagnostics, err, smerr.ID, state.Name.String())
 		return
 	}
 
 	// TIP: -- 5. Use a waiter to wait for delete to complete
 	deleteTimeout := r.DeleteTimeout(ctx, state.Timeouts)
-	_, err = waitServiceLevelObjectiveDeleted(ctx, conn, state.ID.ValueString(), deleteTimeout)
+	_, err = waitServiceLevelObjectiveDeleted(ctx, conn, state.Name.ValueString(), deleteTimeout)
 	if err != nil {
-		smerr.AddError(ctx, &resp.Diagnostics, err, smerr.ID, state.ID.String())
+		smerr.AddError(ctx, &resp.Diagnostics, err, smerr.ID, state.Name.String())
 		return
 	}
 }
@@ -694,9 +691,9 @@ func statusServiceLevelObjective(ctx context.Context, conn *applicationsignals.C
 	}
 }
 
-func findServiceLevelObjectiveByID(ctx context.Context, conn *applicationsignals.Client, id string) (*awstypes.ServiceLevelObjective, error) {
+func findServiceLevelObjectiveByID(ctx context.Context, conn *applicationsignals.Client, name string) (*awstypes.ServiceLevelObjective, error) {
 	input := applicationsignals.GetServiceLevelObjectiveInput{
-		Id: aws.String(id),
+		Id: aws.String(name),
 	}
 
 	out, err := conn.GetServiceLevelObjective(ctx, &input)
@@ -784,7 +781,6 @@ func (m intervalModel) Expand(ctx context.Context) (result any, diags diag.Diagn
 
 type resourceServiceLevelObjectiveModel struct {
 	framework.WithRegionModel
-	ID                     types.String                                                `tfsdk:"id"`
 	ARN                    types.String                                                `tfsdk:"arn"`
 	CreatedTime            types.String                                                `tfsdk:"created_time"`
 	BurnRateConfigurations fwtypes.ListNestedObjectValueOf[burnRateConfigurationModel] `tfsdk:"burn_rate_configurations"`
