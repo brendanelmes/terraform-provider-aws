@@ -13,6 +13,7 @@ import (
 	"github.com/aws/aws-sdk-go-v2/service/applicationsignals"
 	awstypes "github.com/aws/aws-sdk-go-v2/service/applicationsignals/types"
 	"github.com/hashicorp/terraform-plugin-framework-timeouts/resource/timeouts"
+	"github.com/hashicorp/terraform-plugin-framework-timetypes/timetypes"
 	"github.com/hashicorp/terraform-plugin-framework-validators/objectvalidator"
 	"github.com/hashicorp/terraform-plugin-framework/diag"
 	"github.com/hashicorp/terraform-plugin-framework/path"
@@ -105,7 +106,8 @@ func (r *resourceServiceLevelObjective) Schema(ctx context.Context, req resource
 		Attributes: map[string]schema.Attribute{
 			names.AttrARN: framework.ARNAttributeComputedOnly(),
 			names.AttrCreatedTime: schema.StringAttribute{
-				Computed: true,
+				CustomType: timetypes.RFC3339Type{},
+				Computed:   true,
 			},
 			names.AttrDescription: schema.StringAttribute{
 				Optional: true,
@@ -114,7 +116,8 @@ func (r *resourceServiceLevelObjective) Schema(ctx context.Context, req resource
 				Computed: true,
 			},
 			"last_updated_time": schema.StringAttribute{
-				Computed: true,
+				CustomType: timetypes.RFC3339Type{},
+				Computed:   true,
 			},
 			"metric_source_type": schema.StringAttribute{
 				Computed: true,
@@ -850,9 +853,9 @@ func (m sliModel) Expand(ctx context.Context) (any, diag.Diagnostics) {
 type resourceServiceLevelObjectiveModel struct {
 	framework.WithRegionModel
 	ARN                    types.String                                                `tfsdk:"arn"`
-	CreatedTime            types.String                                                `tfsdk:"created_time"`
+	CreatedTime            timetypes.RFC3339                                           `tfsdk:"created_time"`
 	BurnRateConfigurations fwtypes.ListNestedObjectValueOf[burnRateConfigurationModel] `tfsdk:"burn_rate_configurations"`
-	LastUpdatedTime        types.String                                                `tfsdk:"last_updated_time"`
+	LastUpdatedTime        timetypes.RFC3339                                           `tfsdk:"last_updated_time"`
 	Name                   types.String                                                `tfsdk:"name"`
 	Description            types.String                                                `tfsdk:"description"`
 	MetricSourceType       types.String                                                `tfsdk:"metric_source_type"`
