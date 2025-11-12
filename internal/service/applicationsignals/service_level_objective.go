@@ -345,7 +345,7 @@ func (r *resourceServiceLevelObjective) Create(ctx context.Context, req resource
 	}
 
 	// TIP: -- 5. Using the output from the create function, set attributes
-	smerr.AddEnrich(ctx, &resp.Diagnostics, flex.Flatten(ctx, out, &plan))
+	smerr.AddEnrich(ctx, &resp.Diagnostics, flex.Flatten(ctx, out.Slo, &plan))
 	if resp.Diagnostics.HasError() {
 		return
 	}
