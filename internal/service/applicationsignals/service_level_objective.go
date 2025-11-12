@@ -669,25 +669,17 @@ func waitServiceLevelObjectiveDeleted(ctx context.Context, conn *applicationsign
 	return nil, smarterr.NewError(err)
 }
 
-// TIP: ==== STATUS ====
-// The status function can return an actual status when that field is
-// available from the API (e.g., out.Status). Otherwise, you can use custom
-// statuses to communicate the states of the resource.
-//
-// Waiters consume the values returned by status functions. Design status so
-// that it can be reused by a create, update, and delete waiter, if possible.
 func statusServiceLevelObjective(ctx context.Context, conn *applicationsignals.Client, id string) retry.StateRefreshFunc {
 	return func() (any, string, error) {
 		out, err := findServiceLevelObjectiveByID(ctx, conn, id)
 		if tfresource.NotFound(err) {
-			return nil, "", nil
+			return nil, "", nil // Not found yet
 		}
-
 		if err != nil {
 			return nil, "", smarterr.NewError(err)
 		}
 
-		return out, "", nil
+		return out, statusNormal, nil
 	}
 }
 
