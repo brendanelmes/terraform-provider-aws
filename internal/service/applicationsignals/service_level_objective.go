@@ -732,6 +732,121 @@ func (m intervalModel) Expand(ctx context.Context) (result any, diags diag.Diagn
 	return nil, diags
 }
 
+func stringPtr(v types.String) *string {
+	if v.IsNull() || v.IsUnknown() {
+		return nil
+	}
+	val := v.ValueString()
+	return &val
+}
+
+func (m resourceServiceLevelObjectiveModel) Expand(ctx context.Context) (any, diag.Diagnostics) {
+	var diags diag.Diagnostics
+	input := &applicationsignals.CreateServiceLevelObjectiveInput{}
+
+	input.Name = stringPtr(m.Name)
+	input.Description = stringPtr(m.Description)
+
+	if !m.Goal.IsNull() {
+		goalData, d := m.Goal.ToPtr(ctx)
+		diags.Append(d...)
+		if diags.HasError() {
+			return nil, diags
+		}
+
+		var goal awstypes.Goal
+		diags.Append(flex.Expand(ctx, goalData, &goal)...)
+		if diags.HasError() {
+			return nil, diags
+		}
+		input.Goal = &goal
+	}
+
+	if !m.BurnRateConfigurations.IsNull() {
+		burnData, d := m.BurnRateConfigurations.ToPtr(ctx)
+		diags.Append(d...)
+		if diags.HasError() {
+			return nil, diags
+		}
+
+		var burns []awstypes.BurnRateConfiguration
+		diags.Append(flex.Expand(ctx, burnData, &burns)...)
+		if diags.HasError() {
+			return nil, diags
+		}
+		input.BurnRateConfigurations = burns
+	}
+
+	if !m.Sli.IsNull() {
+		sliData, d := m.Sli.ToPtr(ctx)
+		diags.Append(d...)
+		if diags.HasError() {
+			return nil, diags
+		}
+
+		var sli awstypes.ServiceLevelIndicatorConfig
+		diags.Append(flex.Expand(ctx, sliData, &sli)...)
+		if diags.HasError() {
+			return nil, diags
+		}
+		input.SliConfig = &sli
+	}
+
+	if !m.RequestBasedSli.IsNull() {
+		reqSliData, d := m.RequestBasedSli.ToPtr(ctx)
+		diags.Append(d...)
+		if diags.HasError() {
+			return nil, diags
+		}
+
+		var reqSli awstypes.RequestBasedServiceLevelIndicatorConfig
+		diags.Append(flex.Expand(ctx, reqSliData, &reqSli)...)
+		if diags.HasError() {
+			return nil, diags
+		}
+		input.RequestBasedSliConfig = &reqSli
+	}
+
+	return input, diags
+}
+
+func (m sliModel) Expand(ctx context.Context) (any, diag.Diagnostics) {
+	var diags diag.Diagnostics
+
+	var config awstypes.ServiceLevelIndicatorConfig
+
+	if !m.ComparisonOperator.IsNull() {
+		config.ComparisonOperator = awstypes.ServiceLevelIndicatorComparisonOperator(m.ComparisonOperator.ValueString())
+	}
+
+	if !m.MetricThreshold.IsNull() {
+		val := m.MetricThreshold.ValueFloat64()
+		config.MetricThreshold = &val
+	}
+
+	if !m.SliMetric.IsNull() {
+		sliMetricData, d := m.SliMetric.ToPtr(ctx)
+		diags.Append(d...)
+		if diags.HasError() {
+			return nil, diags
+		}
+
+		var metric awstypes.ServiceLevelIndicatorMetricConfig
+		diags.Append(flex.Expand(ctx, sliMetricData, &metric)...)
+		if diags.HasError() {
+			return nil, diags
+		}
+
+		config.SliMetricConfig = &metric
+	}
+
+	return &config, diags
+}
+
+//func (m requestBasedSliMetricModel) Expand(ctx context.Context) (any, diag.Diagnostics) {
+//
+//}
+
 type resourceServiceLevelObjectiveModel struct {
 	framework.WithRegionModel
 	ARN                    types.String                                                `tfsdk:"arn"`
@@ -798,6 +913,7 @@ type sliMetricModel struct {
 	MetricDataQueries fwtypes.ListNestedObjectValueOf[metricDataQueryModel] `tfsdk:"metric_data_queries"`
 	DependencyConfig  fwtypes.ObjectValueOf[dependencyConfigModel]          `tfsdk:"dependency_config"`
 	KeyAttributes     fwtypes.MapOfString                                   `tfsdk:"key_attributes"`
+	MetricName        types.String                                          `tfsdk:"metric_name"`
 	MetricType        types.String                                          `tfsdk:"metric_type"`
 	OperationName     types.String                                          `tfsdk:"operation_name"`
 	PeriodSeconds     types.Int32                                           `tfsdk:"period_seconds"`
