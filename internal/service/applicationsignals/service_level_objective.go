@@ -37,11 +37,6 @@ import (
 func newResourceServiceLevelObjective(_ context.Context) (resource.ResourceWithConfigure, error) {
 	r := &resourceServiceLevelObjective{}
 
-	// TIP: ==== CONFIGURABLE TIMEOUTS ====
-	// Users can configure timeout lengths but you need to use the times they
-	// provide. Access the timeout they configure (or the defaults) using,
-	// e.g., r.CreateTimeout(ctx, plan.Timeouts) (see below). The times here are
-	// the defaults if they don't configure timeouts.
 	r.SetDefaultCreateTimeout(30 * time.Minute)
 	r.SetDefaultUpdateTimeout(30 * time.Minute)
 	r.SetDefaultDeleteTimeout(30 * time.Minute)
@@ -58,50 +53,6 @@ type resourceServiceLevelObjective struct {
 	framework.WithTimeouts
 }
 
-// TIP: ==== SCHEMA ====
-// In the schema, add each of the attributes in snake case (e.g.,
-// delete_automated_backups).
-//
-// Formatting rules:
-// * Alphabetize attributes to make them easier to find.
-// * Do not add a blank line between attributes.
-//
-// Attribute basics:
-//   - If a user can provide a value ("configure a value") for an
-//     attribute (e.g., instances = 5), we call the attribute an
-//     "argument."
-//   - You change the way users interact with attributes using:
-//   - Required
-//   - Optional
-//   - Computed
-//   - There are only four valid combinations:
-//
-// 1. Required only - the user must provide a value
-// Required: true,
-//
-//  2. Optional only - the user can configure or omit a value; do not
-//     use Default or DefaultFunc
-//
-// Optional: true,
-//
-//  3. Computed only - the provider can provide a value but the user
-//     cannot, i.e., read-only
-//
-// Computed: true,
-//
-//  4. Optional AND Computed - the provider or user can provide a value;
-//     use this combination if you are using Default
-//
-// Optional: true,
-// Computed: true,
-//
-// You will typically find arguments in the input struct
-// (e.g., CreateDBInstanceInput) for the create operation. Sometimes
-// they are only in the input struct (e.g., ModifyDBInstanceInput) for
-// the modify operation.
-//
-// For more about schema options, visit
-// https://developer.hashicorp.com/terraform/plugin/framework/handling-data/schemas?page=schemas
 func (r *resourceServiceLevelObjective) Schema(ctx context.Context, req resource.SchemaRequest, resp *resource.SchemaResponse) {
 	resp.Schema = schema.Schema{
 		Attributes: map[string]schema.Attribute{
@@ -261,7 +212,7 @@ func metricDataQueriesBlock(ctx context.Context) schema.ListNestedBlock {
 			CustomType: fwtypes.NewObjectTypeOf[metricDataQueryModel](ctx),
 			Attributes: map[string]schema.Attribute{
 				"id":          schema.StringAttribute{Optional: true},
-				"account_id":  schema.StringAttribute{Computed: true},
+				"account_id":  schema.StringAttribute{Optional: true},
 				"expression":  schema.StringAttribute{Optional: true},
 				"label":       schema.StringAttribute{Optional: true},
 				"period":      schema.Int32Attribute{Optional: true},
@@ -381,7 +332,7 @@ func (r *resourceServiceLevelObjective) Update(ctx context.Context, req resource
 
 	if diff.HasChanges() {
 		var input applicationsignals.UpdateServiceLevelObjectiveInput
-		smerr.AddEnrich(ctx, &resp.Diagnostics, flex.Expand(ctx, plan, &input, flex.WithFieldNamePrefix("Test")))
+		smerr.AddEnrich(ctx, &resp.Diagnostics, flex.Expand(ctx, plan, &input))
 		if resp.Diagnostics.HasError() {
 			return
 		}
