@@ -303,43 +303,22 @@ func metricDataQueriesBlock(ctx context.Context) schema.ListNestedBlock {
 }
 
 func (r *resourceServiceLevelObjective) Create(ctx context.Context, req resource.CreateRequest, resp *resource.CreateResponse) {
-	// TIP: ==== RESOURCE CREATE ====
-	// Generally, the Create function should do the following things. Make
-	// sure there is a good reason if you don't do one of these.
-	//
-	// 1. Get a client connection to the relevant service
-	// 2. Fetch the plan
-	// 3. Populate a create input structure
-	// 4. Call the AWS create/put function
-	// 5. Using the output from the create function, set the minimum arguments
-	//    and attributes for the Read function to work, as well as any computed
-	//    only attributes.
-	// 6. Use a waiter to wait for create to complete
-	// 7. Save the request plan to response state
-
-	// TIP: -- 1. Get a client connection to the relevant service
 	conn := r.Meta().ApplicationSignalsClient(ctx)
 
-	// TIP: -- 2. Fetch the plan
 	var plan resourceServiceLevelObjectiveModel
 	smerr.AddEnrich(ctx, &resp.Diagnostics, req.Plan.Get(ctx, &plan))
 	if resp.Diagnostics.HasError() {
 		return
 	}
 
-	// TIP: -- 3. Populate a Create input structure
 	var input applicationsignals.CreateServiceLevelObjectiveInput
-	// TIP: Using a field name prefix allows mapping fields such as `ID` to `ServiceLevelObjectiveId`
-	smerr.AddEnrich(ctx, &resp.Diagnostics, flex.Expand(ctx, plan, &input, flex.WithFieldNamePrefix("ServiceLevelObjective")))
+	smerr.AddEnrich(ctx, &resp.Diagnostics, flex.Expand(ctx, plan, &input))
 	if resp.Diagnostics.HasError() {
 		return
 	}
 
-	// TIP: -- 4. Call the AWS Create function
 	out, err := conn.CreateServiceLevelObjective(ctx, &input)
 	if err != nil {
-		// TIP: Since ID has not been set yet, you cannot use plan.ID.String()
-		// in error messages at this point.
 		smerr.AddError(ctx, &resp.Diagnostics, err, smerr.ID, plan.Name.String())
 		return
 	}
@@ -348,50 +327,24 @@ func (r *resourceServiceLevelObjective) Create(ctx context.Context, req resource
 		return
 	}
 
-	// TIP: -- 5. Using the output from the create function, set attributes
 	smerr.AddEnrich(ctx, &resp.Diagnostics, flex.Flatten(ctx, out.Slo, &plan))
 	if resp.Diagnostics.HasError() {
 		return
 	}
 
-	// TIP: -- 6. Use a waiter to wait for create to complete
-	createTimeout := r.CreateTimeout(ctx, plan.Timeouts)
-	_, err = waitServiceLevelObjectiveCreated(ctx, conn, plan.Name.ValueString(), createTimeout)
-	if err != nil {
-		smerr.AddError(ctx, &resp.Diagnostics, err, smerr.ID, plan.Name.String())
-		return
-	}
-
-	// TIP: -- 7. Save the request plan to response state
 	smerr.AddEnrich(ctx, &resp.Diagnostics, resp.State.Set(ctx, plan))
 }
 
 func (r *resourceServiceLevelObjective) Read(ctx context.Context, req resource.ReadRequest, resp *resource.ReadResponse) {
-	// TIP: ==== RESOURCE READ ====
-	// Generally, the Read function should do the following things. Make
-	// sure there is a good reason if you don't do one of these.
-	//
-	// 1. Get a client connection to the relevant service
-	// 2. Fetch the state
-	// 3. Get the resource from AWS
-	// 4. Remove resource from state if it is not found
-	// 5. Set the arguments and attributes
-	// 6. Set the state
-
-	// TIP: -- 1. Get a client connection to the relevant service
 	conn := r.Meta().ApplicationSignalsClient(ctx)
 
-	// TIP: -- 2. Fetch the state
 	var state resourceServiceLevelObjectiveModel
 	smerr.AddEnrich(ctx, &resp.Diagnostics, req.State.Get(ctx, &state))
 	if resp.Diagnostics.HasError() {
 		return
 	}
 
-	// TIP: -- 3. Get the resource from AWS using an API Get, List, or Describe-
-	// type function, or, better yet, using a finder.
 	out, err := findServiceLevelObjectiveByID(ctx, conn, state.Name.ValueString())
-	// TIP: -- 4. Remove resource from state if it is not found
 	if tfresource.NotFound(err) {
 		resp.Diagnostics.Append(fwdiag.NewResourceNotFoundWarningDiagnostic(err))
 		resp.State.RemoveResource(ctx)
@@ -402,41 +355,17 @@ func (r *resourceServiceLevelObjective) Read(ctx context.Context, req resource.R
 		return
 	}
 
-	// TIP: -- 5. Set the arguments and attributes
 	smerr.AddEnrich(ctx, &resp.Diagnostics, flex.Flatten(ctx, out, &state))
 	if resp.Diagnostics.HasError() {
 		return
 	}
 
-	// TIP: -- 6. Set the state
 	smerr.AddEnrich(ctx, &resp.Diagnostics, resp.State.Set(ctx, &state))
 }
 
 func (r *resourceServiceLevelObjective) Update(ctx context.Context, req resource.UpdateRequest, resp *resource.UpdateResponse) {
-	// TIP: ==== RESOURCE UPDATE ====
-	// Not all resources have Update functions. There are a few reasons:
-	// a. The AWS API does not support changing a resource
-	// b. All arguments have RequiresReplace() plan modifiers
-	// c. The AWS API uses a create call to modify an existing resource
-	//
-	// In the cases of a. and b., the resource will not have an update method
-	// defined. In the case of c., Update and Create can be refactored to call
-	// the same underlying function.
-	//
-	// The rest of the time, there should be an Update function and it should
-	// do the following things. Make sure there is a good reason if you don't
-	// do one of these.
-	//
-	// 1. Get a client connection to the relevant service
-	// 2. Fetch the plan and state
-	// 3. Populate a modify input structure and check for changes
-	// 4. Call the AWS modify/update function
-	// 5. Use a waiter to wait for update to complete
-	// 6. Save the request plan to response state
-	// TIP: -- 1. Get a client connection to the relevant service
 	conn := r.Meta().ApplicationSignalsClient(ctx)
 
-	// TIP: -- 2. Fetch the plan
 	var plan, state resourceServiceLevelObjectiveModel
 	smerr.AddEnrich(ctx, &resp.Diagnostics, req.Plan.Get(ctx, &plan))
 	smerr.AddEnrich(ctx, &resp.Diagnostics, req.State.Get(ctx, &state))
@@ -444,7 +373,6 @@ func (r *resourceServiceLevelObjective) Update(ctx context.Context, req resource
 		return
 	}
 
-	// TIP: -- 3. Get the difference between the plan and state, if any
 	diff, d := flex.Diff(ctx, plan, state)
 	smerr.AddEnrich(ctx, &resp.Diagnostics, d)
 	if resp.Diagnostics.HasError() {
@@ -458,7 +386,6 @@ func (r *resourceServiceLevelObjective) Update(ctx context.Context, req resource
 			return
 		}
 
-		// TIP: -- 4. Call the AWS modify/update function
 		out, err := conn.UpdateServiceLevelObjective(ctx, &input)
 		if err != nil {
 			smerr.AddError(ctx, &resp.Diagnostics, err, smerr.ID, plan.Name.String())
@@ -469,73 +396,34 @@ func (r *resourceServiceLevelObjective) Update(ctx context.Context, req resource
 			return
 		}
 
-		// TIP: Using the output from the update function, re-set any computed attributes
-		smerr.AddEnrich(ctx, &resp.Diagnostics, flex.Flatten(ctx, out, &plan))
+		smerr.AddEnrich(ctx, &resp.Diagnostics, flex.Flatten(ctx, out.Slo, &plan))
 		if resp.Diagnostics.HasError() {
 			return
 		}
 	}
 
-	// TIP: -- 5. Use a waiter to wait for update to complete
-	updateTimeout := r.UpdateTimeout(ctx, plan.Timeouts)
-	_, err := waitServiceLevelObjectiveUpdated(ctx, conn, plan.Name.ValueString(), updateTimeout)
-	if err != nil {
-		smerr.AddError(ctx, &resp.Diagnostics, err, smerr.ID, plan.Name.String())
-		return
-	}
-
-	// TIP: -- 6. Save the request plan to response state
 	smerr.AddEnrich(ctx, &resp.Diagnostics, resp.State.Set(ctx, &plan))
 }
 
 func (r *resourceServiceLevelObjective) Delete(ctx context.Context, req resource.DeleteRequest, resp *resource.DeleteResponse) {
-	// TIP: ==== RESOURCE DELETE ====
-	// Most resources have Delete functions. There are rare situations
-	// where you might not need a delete:
-	// a. The AWS API does not provide a way to delete the resource
-	// b. The point of your resource is to perform an action (e.g., reboot a
-	//    server) and deleting serves no purpose.
-	//
-	// The Delete function should do the following things. Make sure there
-	// is a good reason if you don't do one of these.
-	//
-	// 1. Get a client connection to the relevant service
-	// 2. Fetch the state
-	// 3. Populate a delete input structure
-	// 4. Call the AWS delete function
-	// 5. Use a waiter to wait for delete to complete
-	// TIP: -- 1. Get a client connection to the relevant service
 	conn := r.Meta().ApplicationSignalsClient(ctx)
 
-	// TIP: -- 2. Fetch the state
 	var state resourceServiceLevelObjectiveModel
 	smerr.AddEnrich(ctx, &resp.Diagnostics, req.State.Get(ctx, &state))
 	if resp.Diagnostics.HasError() {
 		return
 	}
 
-	// TIP: -- 3. Populate a delete input structure
 	input := applicationsignals.DeleteServiceLevelObjectiveInput{
 		Id: state.Name.ValueStringPointer(),
 	}
 
-	// TIP: -- 4. Call the AWS delete function
 	_, err := conn.DeleteServiceLevelObjective(ctx, &input)
-	// TIP: On rare occassions, the API returns a not found error after deleting a
-	// resource. If that happens, we don't want it to show up as an error.
 	if err != nil {
 		if errs.IsA[*awstypes.ResourceNotFoundException](err) {
 			return
 		}
 
-		smerr.AddError(ctx, &resp.Diagnostics, err, smerr.ID, state.Name.String())
-		return
-	}
-
-	// TIP: -- 5. Use a waiter to wait for delete to complete
-	deleteTimeout := r.DeleteTimeout(ctx, state.Timeouts)
-	_, err = waitServiceLevelObjectiveDeleted(ctx, conn, state.Name.ValueString(), deleteTimeout)
-	if err != nil {
 		smerr.AddError(ctx, &resp.Diagnostics, err, smerr.ID, state.Name.String())
 		return
 	}
@@ -550,102 +438,6 @@ func (r *resourceServiceLevelObjective) Delete(ctx context.Context, req resource
 // https://developer.hashicorp.com/terraform/plugin/framework/resources/import
 func (r *resourceServiceLevelObjective) ImportState(ctx context.Context, req resource.ImportStateRequest, resp *resource.ImportStateResponse) {
 	resource.ImportStatePassthroughID(ctx, path.Root(names.AttrID), req, resp)
-}
-
-// TIP: ==== STATUS CONSTANTS ====
-// Create constants for states and statuses if the service does not
-// already have suitable constants. We prefer that you use the constants
-// provided in the service if available (e.g., awstypes.StatusInProgress).
-const (
-	statusChangePending = "Pending"
-	statusDeleting      = "Deleting"
-	statusNormal        = "Normal"
-	statusUpdated       = "Updated"
-)
-
-// TIP: ==== WAITERS ====
-// Some resources of some services have waiters provided by the AWS API.
-// Unless they do not work properly, use them rather than defining new ones
-// here.
-//
-// Sometimes we define the wait, status, and find functions in separate
-// files, wait.go, status.go, and find.go. Follow the pattern set out in the
-// service and define these where it makes the most sense.
-//
-// If these functions are used in the _test.go file, they will need to be
-// exported (i.e., capitalized).
-//
-// You will need to adjust the parameters and names to fit the service.
-func waitServiceLevelObjectiveCreated(ctx context.Context, conn *applicationsignals.Client, id string, timeout time.Duration) (*awstypes.ServiceLevelObjective, error) {
-	stateConf := &retry.StateChangeConf{
-		Pending:                   []string{},
-		Target:                    []string{statusNormal},
-		Refresh:                   statusServiceLevelObjective(ctx, conn, id),
-		Timeout:                   timeout,
-		NotFoundChecks:            20,
-		ContinuousTargetOccurence: 2,
-	}
-
-	outputRaw, err := stateConf.WaitForStateContext(ctx)
-	if out, ok := outputRaw.(*awstypes.ServiceLevelObjective); ok {
-		return out, smarterr.NewError(err)
-	}
-
-	return nil, smarterr.NewError(err)
-}
-
-// TIP: It is easier to determine whether a resource is updated for some
-// resources than others. The best case is a status flag that tells you when
-// the update has been fully realized. Other times, you can check to see if a
-// key resource argument is updated to a new value or not.
-func waitServiceLevelObjectiveUpdated(ctx context.Context, conn *applicationsignals.Client, id string, timeout time.Duration) (*awstypes.ServiceLevelObjective, error) {
-	stateConf := &retry.StateChangeConf{
-		Pending:                   []string{statusChangePending},
-		Target:                    []string{statusUpdated},
-		Refresh:                   statusServiceLevelObjective(ctx, conn, id),
-		Timeout:                   timeout,
-		NotFoundChecks:            20,
-		ContinuousTargetOccurence: 2,
-	}
-
-	outputRaw, err := stateConf.WaitForStateContext(ctx)
-	if out, ok := outputRaw.(*awstypes.ServiceLevelObjective); ok {
-		return out, smarterr.NewError(err)
-	}
-
-	return nil, smarterr.NewError(err)
-}
-
-// TIP: A deleted waiter is almost like a backwards created waiter. There may
-// be additional pending states, however.
-func waitServiceLevelObjectiveDeleted(ctx context.Context, conn *applicationsignals.Client, id string, timeout time.Duration) (*awstypes.ServiceLevelObjective, error) {
-	stateConf := &retry.StateChangeConf{
-		Pending: []string{statusDeleting, statusNormal},
-		Target:  []string{},
-		Refresh: statusServiceLevelObjective(ctx, conn, id),
-		Timeout: timeout,
-	}
-
-	outputRaw, err := stateConf.WaitForStateContext(ctx)
-	if out, ok := outputRaw.(*awstypes.ServiceLevelObjective); ok {
-		return out, smarterr.NewError(err)
-	}
-
-	return nil, smarterr.NewError(err)
-}
-
-func statusServiceLevelObjective(ctx context.Context, conn *applicationsignals.Client, id string) retry.StateRefreshFunc {
-	return func() (any, string, error) {
-		out, err := findServiceLevelObjectiveByID(ctx, conn, id)
-		if tfresource.NotFound(err) {
-			return nil, "", nil // Not found yet
-		}
-		if err != nil {
-			return nil, "", smarterr.NewError(err)
-		}
-
-		return out, statusNormal, nil
-	}
 }
 
 func findServiceLevelObjectiveByID(ctx context.Context, conn *applicationsignals.Client, name string) (*awstypes.ServiceLevelObjective, error) {
@@ -698,42 +490,6 @@ func (m *intervalModel) Flatten(ctx context.Context, v any) diag.Diagnostics {
 	}
 
 	return diags
-}
-
-func (m intervalModel) Expand(ctx context.Context) (result any, diags diag.Diagnostics) {
-	switch {
-	case !m.RollingInterval.IsNull():
-		rollingData, d := m.RollingInterval.ToPtr(ctx)
-		diags.Append(d...)
-		if diags.HasError() {
-			return nil, diags
-		}
-
-		var r awstypes.IntervalMemberRollingInterval
-		diags.Append(flex.Expand(ctx, rollingData, &r.Value)...)
-		if diags.HasError() {
-			return nil, diags
-		}
-
-		return &r, diags
-
-	case !m.CalendarInterval.IsNull():
-		calendarData, d := m.CalendarInterval.ToPtr(ctx)
-		diags.Append(d...)
-		if diags.HasError() {
-			return nil, diags
-		}
-
-		var r awstypes.IntervalMemberCalendarInterval
-		diags.Append(flex.Expand(ctx, calendarData, &r.Value)...)
-		if diags.HasError() {
-			return nil, diags
-		}
-
-		return &r, diags
-	}
-
-	return nil, diags
 }
 
 func stringPtr(v types.String) *string {
@@ -931,6 +687,42 @@ func (m sliModel) Expand(ctx context.Context) (any, diag.Diagnostics) {
 //func (m requestBasedSliMetricModel) Expand(ctx context.Context) (any, diag.Diagnostics) {
 //
 //}
+
+func (m intervalModel) Expand(ctx context.Context) (result any, diags diag.Diagnostics) {
+	switch {
+	case !m.RollingInterval.IsNull():
+		rollingData, d := m.RollingInterval.ToPtr(ctx)
+		diags.Append(d...)
+		if diags.HasError() {
+			return nil, diags
+		}
+
+		var r awstypes.IntervalMemberRollingInterval
+		diags.Append(flex.Expand(ctx, rollingData, &r.Value)...)
+		if diags.HasError() {
+			return nil, diags
+		}
+
+		return &r, diags
+
+	case !m.CalendarInterval.IsNull():
+		calendarData, d := m.CalendarInterval.ToPtr(ctx)
+		diags.Append(d...)
+		if diags.HasError() {
+			return nil, diags
+		}
+
+		var r awstypes.IntervalMemberCalendarInterval
+		diags.Append(flex.Expand(ctx, calendarData, &r.Value)...)
+		if diags.HasError() {
+			return nil, diags
+		}
+
+		return &r, diags
+	}
+
+	return nil, diags
+}
 
 type resourceServiceLevelObjectiveModel struct {
 	framework.WithRegionModel
