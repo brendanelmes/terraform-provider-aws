@@ -6,6 +6,7 @@ package applicationsignals
 import (
 	"context"
 	"errors"
+	"reflect"
 	"time"
 
 	"github.com/YakDriver/smarterr"
@@ -743,7 +744,88 @@ func stringPtr(v types.String) *string {
 	return &val
 }
 
-func (m resourceServiceLevelObjectiveModel) Expand(ctx context.Context) (any, diag.Diagnostics) {
+func (m resourceServiceLevelObjectiveModel) ExpandTo(ctx context.Context, targetType reflect.Type) (result any, diags diag.Diagnostics) {
+	switch targetType {
+	case reflect.TypeFor[applicationsignals.UpdateServiceLevelObjectiveInput]():
+		return m.expandToUpdateServiceLevelObjectiveInput(ctx)
+
+	case reflect.TypeFor[applicationsignals.CreateServiceLevelObjectiveInput]():
+		return m.expandToCreateServiceLevelObjectiveInput(ctx)
+	}
+	return nil, diags
+}
+
+func (m resourceServiceLevelObjectiveModel) expandToUpdateServiceLevelObjectiveInput(ctx context.Context) (any, diag.Diagnostics) {
+	var diags diag.Diagnostics
+	input := &applicationsignals.UpdateServiceLevelObjectiveInput{}
+
+	input.Id = stringPtr(m.Name)
+	input.Description = stringPtr(m.Description)
+
+	if !m.Goal.IsNull() {
+		goalData, d := m.Goal.ToPtr(ctx)
+		diags.Append(d...)
+		if diags.HasError() {
+			return nil, diags
+		}
+
+		var goal awstypes.Goal
+		diags.Append(flex.Expand(ctx, goalData, &goal)...)
+		if diags.HasError() {
+			return nil, diags
+		}
+		input.Goal = &goal
+	}
+
+	if !m.BurnRateConfigurations.IsNull() {
+		burnData, d := m.BurnRateConfigurations.ToPtr(ctx)
+		diags.Append(d...)
+		if diags.HasError() {
+			return nil, diags
+		}
+
+		var burns []awstypes.BurnRateConfiguration
+		diags.Append(flex.Expand(ctx, burnData, &burns)...)
+		if diags.HasError() {
+			return nil, diags
+		}
+		input.BurnRateConfigurations = burns
+	}
+
+	if !m.Sli.IsNull() {
+		sliData, d := m.Sli.ToPtr(ctx)
+		diags.Append(d...)
+		if diags.HasError() {
+			return nil, diags
+		}
+
+		var sli awstypes.ServiceLevelIndicatorConfig
+		diags.Append(flex.Expand(ctx, sliData, &sli)...)
+		if diags.HasError() {
+			return nil, diags
+		}
+		input.SliConfig = &sli
+	}
+
+	if !m.RequestBasedSli.IsNull() {
+		reqSliData, d := m.RequestBasedSli.ToPtr(ctx)
+		diags.Append(d...)
+		if diags.HasError() {
+			return nil, diags
+		}
+
+		var reqSli awstypes.RequestBasedServiceLevelIndicatorConfig
+		diags.Append(flex.Expand(ctx, reqSliData, &reqSli)...)
+		if diags.HasError() {
+			return nil, diags
+		}
+		input.RequestBasedSliConfig = &reqSli
+	}
+
+	return input, diags
+}
+
+func (m resourceServiceLevelObjectiveModel) expandToCreateServiceLevelObjectiveInput(ctx context.Context) (any, diag.Diagnostics) {
 	var diags diag.Diagnostics
 	input := &applicationsignals.CreateServiceLevelObjectiveInput{}
 
