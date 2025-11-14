@@ -159,7 +159,13 @@ func (r *resourceServiceLevelObjective) Schema(ctx context.Context, req resource
 							"dependency_config": schema.SingleNestedBlock{
 								CustomType: fwtypes.NewObjectTypeOf[dependencyConfigModel](ctx),
 							},
-							// TODO - Implement MetricDataQuery
+							"monitored_request_count_metric": schema.SingleNestedBlock{
+								CustomType: fwtypes.NewObjectTypeOf[monitoredRequestCountMetricModel](ctx),
+								Blocks: map[string]schema.Block{
+									"good_count_metric": metricDataQueriesBlock(ctx),
+									"bad_count_metric":  metricDataQueriesBlock(ctx),
+								},
+							},
 						},
 					},
 				},
@@ -209,7 +215,6 @@ func metricDataQueriesBlock(ctx context.Context) schema.ListNestedBlock {
 	return schema.ListNestedBlock{
 		CustomType: fwtypes.NewListNestedObjectTypeOf[metricDataQueryModel](ctx),
 		NestedObject: schema.NestedBlockObject{
-			CustomType: fwtypes.NewObjectTypeOf[metricDataQueryModel](ctx),
 			Attributes: map[string]schema.Attribute{
 				"id":          schema.StringAttribute{Optional: true},
 				"account_id":  schema.StringAttribute{Optional: true},
@@ -239,8 +244,8 @@ func metricDataQueriesBlock(ctx context.Context) schema.ListNestedBlock {
 									NestedObject: schema.NestedBlockObject{
 										CustomType: fwtypes.NewObjectTypeOf[dimensionModel](ctx),
 										Attributes: map[string]schema.Attribute{
-											"name":  schema.StringAttribute{Computed: true},
-											"value": schema.StringAttribute{Computed: true},
+											"name":  schema.StringAttribute{Optional: true},
+											"value": schema.StringAttribute{Optional: true},
 										},
 									},
 								},
@@ -704,6 +709,32 @@ func (m intervalModel) Expand(ctx context.Context) (result any, diags diag.Diagn
 	return nil, diags
 }
 
+func (m monitoredRequestCountMetricModel) Expand(ctx context.Context) (any, diag.Diagnostics) {
+	var diags diag.Diagnostics
+
+	if !m.GoodCountMetric.IsNull() && !m.GoodCountMetric.IsUnknown() {
+		var r awstypes.MonitoredRequestCountMetricDataQueriesMemberGoodCountMetric
+		diags.Append(flex.Expand(ctx, m.GoodCountMetric, &r.Value)...)
+		if diags.HasError() {
+			return nil, diags
+		}
+
+		return &r, diags
+	}
+
+	if !m.BadCountMetric.IsNull() && !m.BadCountMetric.IsUnknown() {
+		var r awstypes.MonitoredRequestCountMetricDataQueriesMemberBadCountMetric
+		diags.Append(flex.Expand(ctx, m.BadCountMetric, &r.Value)...)
+		if diags.HasError() {
+			return nil, diags
+		}
+
+		return &r, diags
+	}
+
+	return nil, diags
+}
+
 type resourceServiceLevelObjectiveModel struct {
 	framework.WithRegionModel
 	ARN                    types.String                                                `tfsdk:"arn"`
@@ -759,11 +790,17 @@ type burnRateConfigurationModel struct {
 }
 
 type requestBasedSliMetricModel struct {
-	TotalRequestCountMetric fwtypes.ListNestedObjectValueOf[metricDataQueryModel] `tfsdk:"total_request_count_metric"`
-	DependencyConfig        fwtypes.ObjectValueOf[dependencyConfigModel]          `tfsdk:"dependency_config"`
-	KeyAttributes           fwtypes.MapOfString                                   `tfsdk:"key_attributes"`
-	MetricType              types.String                                          `tfsdk:"metric_type"`
-	OperationName           types.String                                          `tfsdk:"operation_name"`
+	TotalRequestCountMetric     fwtypes.ListNestedObjectValueOf[metricDataQueryModel]   `tfsdk:"total_request_count_metric"`
+	DependencyConfig            fwtypes.ObjectValueOf[dependencyConfigModel]            `tfsdk:"dependency_config"`
+	KeyAttributes               fwtypes.MapOfString                                     `tfsdk:"key_attributes"`
+	MetricType                  types.String                                            `tfsdk:"metric_type"`
+	OperationName               types.String                                            `tfsdk:"operation_name"`
+	MonitoredRequestCountMetric fwtypes.ObjectValueOf[monitoredRequestCountMetricModel] `tfsdk:"monitored_request_count_metric"`
+}
+
+type monitoredRequestCountMetricModel struct {
+	GoodCountMetric fwtypes.ListNestedObjectValueOf[metricDataQueryModel] `tfsdk:"good_count_metric"`
+	BadCountMetric  fwtypes.ListNestedObjectValueOf[metricDataQueryModel] `tfsdk:"bad_count_metric"`
 }
 
 type sliMetricModel struct {
