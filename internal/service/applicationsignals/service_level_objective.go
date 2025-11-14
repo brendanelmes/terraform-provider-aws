@@ -37,9 +37,9 @@ import (
 func newResourceServiceLevelObjective(_ context.Context) (resource.ResourceWithConfigure, error) {
 	r := &resourceServiceLevelObjective{}
 
-	r.SetDefaultCreateTimeout(30 * time.Minute)
-	r.SetDefaultUpdateTimeout(30 * time.Minute)
-	r.SetDefaultDeleteTimeout(30 * time.Minute)
+	r.SetDefaultCreateTimeout(5 * time.Minute)
+	r.SetDefaultUpdateTimeout(5 * time.Minute)
+	r.SetDefaultDeleteTimeout(5 * time.Minute)
 
 	return r, nil
 }
@@ -635,9 +635,38 @@ func (m sliModel) Expand(ctx context.Context) (any, diag.Diagnostics) {
 	return &config, diags
 }
 
-//func (m requestBasedSliMetricModel) Expand(ctx context.Context) (any, diag.Diagnostics) {
-//
-//}
+func (m requestBasedSliModel) Expand(ctx context.Context) (any, diag.Diagnostics) {
+	var diags diag.Diagnostics
+
+	var config awstypes.RequestBasedServiceLevelIndicatorConfig
+
+	if !m.ComparisonOperator.IsNull() {
+		config.ComparisonOperator = awstypes.ServiceLevelIndicatorComparisonOperator(m.ComparisonOperator.ValueString())
+	}
+
+	if !m.MetricThreshold.IsNull() {
+		val := m.MetricThreshold.ValueFloat64()
+		config.MetricThreshold = &val
+	}
+
+	if !m.RequestBasedSliMetric.IsNull() {
+		sliMetricData, d := m.RequestBasedSliMetric.ToPtr(ctx)
+		diags.Append(d...)
+		if diags.HasError() {
+			return nil, diags
+		}
+
+		var metric awstypes.RequestBasedServiceLevelIndicatorMetricConfig
+		diags.Append(flex.Expand(ctx, sliMetricData, &metric)...)
+		if diags.HasError() {
+			return nil, diags
+		}
+
+		config.RequestBasedSliMetricConfig = &metric
+	}
+
+	return &config, diags
+}
 
 func (m intervalModel) Expand(ctx context.Context) (result any, diags diag.Diagnostics) {
 	switch {
