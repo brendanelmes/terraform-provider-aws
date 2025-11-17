@@ -420,7 +420,16 @@ func findServiceLevelObjectiveByID(ctx context.Context, conn *applicationsignals
 	return out.Slo, nil
 }
 
-var _ flex.Flattener = &intervalModel{}
+var (
+	_ flex.Flattener = &intervalModel{}
+	_ flex.Expander  = intervalModel{}
+
+	_ flex.Flattener = &requestBasedSliModel{}
+	_ flex.Expander  = requestBasedSliModel{}
+
+	_ flex.Flattener = &monitoredRequestCountMetricModel{}
+	_ flex.Expander  = monitoredRequestCountMetricModel{}
+)
 
 func (m *intervalModel) Flatten(ctx context.Context, v any) diag.Diagnostics {
 	var diags diag.Diagnostics
@@ -673,6 +682,46 @@ func (m requestBasedSliModel) Expand(ctx context.Context) (any, diag.Diagnostics
 	return &config, diags
 }
 
+func (m *requestBasedSliModel) Flatten(ctx context.Context, v any) diag.Diagnostics {
+	var diags diag.Diagnostics
+
+	// Cast to expected type
+	apiModel, ok := v.(awstypes.RequestBasedServiceLevelIndicator)
+	if !ok {
+		return diag.Diagnostics{
+			diag.NewErrorDiagnostic("Flatten Error", "Invalid type passed to Flatten for requestBasedSliModel"),
+		}
+	}
+
+	// Flatten ComparisonOperator
+	if apiModel.ComparisonOperator == "" {
+		m.ComparisonOperator = types.StringNull()
+	} else {
+		m.ComparisonOperator = types.StringValue(string(apiModel.ComparisonOperator))
+	}
+
+	// Flatten MetricThreshold
+	if apiModel.MetricThreshold == nil {
+		m.MetricThreshold = types.Float64Null()
+	} else {
+		m.MetricThreshold = types.Float64Value(*apiModel.MetricThreshold)
+	}
+
+	// Flatten RequestBasedSliMetric (nested block)
+	if apiModel.RequestBasedSliMetric == nil {
+		m.RequestBasedSliMetric = fwtypes.NewObjectValueOfNull[requestBasedSliMetricModel](ctx)
+	} else {
+		var nestedModel requestBasedSliMetricModel
+		innerDiags := flex.Flatten(ctx, apiModel.RequestBasedSliMetric, &nestedModel)
+		diags.Append(innerDiags...)
+		if !innerDiags.HasError() {
+			m.RequestBasedSliMetric = fwtypes.NewObjectValueOfMust(ctx, &nestedModel)
+		}
+	}
+
+	return diags
+}
+
 func (m intervalModel) Expand(ctx context.Context) (result any, diags diag.Diagnostics) {
 	switch {
 	case !m.RollingInterval.IsNull():
@@ -735,6 +784,87 @@ func (m monitoredRequestCountMetricModel) Expand(ctx context.Context) (any, diag
 	return nil, diags
 }
 
+func (m *monitoredRequestCountMetricModel) Flatten(ctx context.Context, v any) diag.Diagnostics {
+	var diags diag.Diagnostics
+
+	// Initialize to Null, as before
+	m.GoodCountMetric = fwtypes.NewListNestedObjectValueOfNull[metricDataQueryModel](ctx)
+	m.BadCountMetric = fwtypes.NewListNestedObjectValueOfNull[metricDataQueryModel](ctx)
+
+	switch t := v.(type) {
+	case awstypes.MonitoredRequestCountMetricDataQueriesMemberGoodCountMetric:
+
+		// 1. Core Fix: Manual iteration is still required because t.Value is a slice (list)
+		// and you need to flatten each element into the model type.
+		models := make([]metricDataQueryModel, 0, len(t.Value))
+		for _, apiValue := range t.Value {
+			var model metricDataQueryModel
+			// Flatten single API object (MetricDataQuery) into single model
+			diags.Append(flex.Flatten(ctx, apiValue, &model)...)
+			if diags.HasError() {
+				return diags
+			}
+			models = append(models, model)
+		}
+
+		// 2. ⭐ THE ULTIMATE FIX: Use the specific factory function discovered.
+		listValue, listDiags := fwtypes.NewListNestedObjectValueOfValueSlice(ctx, models)
+		diags.Append(listDiags...)
+
+		m.GoodCountMetric = listValue
+
+	case awstypes.MonitoredRequestCountMetricDataQueriesMemberBadCountMetric:
+
+		models := make([]metricDataQueryModel, 0, len(t.Value))
+		for _, apiValue := range t.Value {
+			var model metricDataQueryModel
+			diags.Append(flex.Flatten(ctx, apiValue, &model)...)
+			if diags.HasError() {
+				return diags
+			}
+			models = append(models, model)
+		}
+
+		// 2. ⭐ THE ULTIMATE FIX: Use the specific factory function discovered.
+		listValue, listDiags := fwtypes.NewListNestedObjectValueOfValueSlice(ctx, models)
+		diags.Append(listDiags...)
+
+		m.BadCountMetric = listValue
+	}
+
+	return diags
+}
+
+//func (m *requestBasedSliMetricModel) Flatten(ctx context.Context, v any) diag.Diagnostics {
+//	var diags diag.Diagnostics
+//
+//	apiModel, ok := v.(awstypes.RequestBasedServiceLevelIndicatorMetric)
+//	if !ok {
+//		return diag.Diagnostics{
+//			diag.NewErrorDiagnostic("Flatten Error", "Invalid type passed to Flatten for requestBasedSliMetricModel"),
+//		}
+//	}
+//
+//	if apiModel.MetricType == "" {
+//		m.MetricType = types.StringNull()
+//	} else {
+//		m.MetricType = types.StringValue(string(apiModel.MetricType))
+//	}
+//
+//	if apiModel.MonitoredRequestCountMetric == nil {
+//		m.MonitoredRequestCountMetric = fwtypes.NewObjectValueOfNull[monitoredRequestCountMetricModel](ctx)
+//	} else {
+//		var nestedModel monitoredRequestCountMetricModel
+//		innerDiags := flex.Flatten(ctx, apiModel.MonitoredRequestCountMetric, &nestedModel)
+//		diags.Append(innerDiags...)
+//		if !innerDiags.HasError() {
+//			m.MonitoredRequestCountMetric = fwtypes.NewObjectValueOfMust(ctx, &nestedModel)
+//		}
+//	}
+//
+//	return diags
+//}
+
 type resourceServiceLevelObjectiveModel struct {
 	framework.WithRegionModel
 	ARN                    types.String                                                `tfsdk:"arn"`
@@ -793,7 +923,7 @@ type requestBasedSliMetricModel struct {
 	TotalRequestCountMetric     fwtypes.ListNestedObjectValueOf[metricDataQueryModel]   `tfsdk:"total_request_count_metric"`
 	DependencyConfig            fwtypes.ObjectValueOf[dependencyConfigModel]            `tfsdk:"dependency_config"`
 	KeyAttributes               fwtypes.MapOfString                                     `tfsdk:"key_attributes"`
-	MetricType                  types.String                                            `tfsdk:"metric_type"`
+	MetricType                  types.String                                            `tfsdk:"metric_type" autoflex:",omitempty"`
 	OperationName               types.String                                            `tfsdk:"operation_name"`
 	MonitoredRequestCountMetric fwtypes.ObjectValueOf[monitoredRequestCountMetricModel] `tfsdk:"monitored_request_count_metric"`
 }
@@ -828,7 +958,7 @@ type metricStatModel struct {
 	Metric fwtypes.ObjectValueOf[metricModel] `tfsdk:"metric"`
 	Period types.Int32                        `tfsdk:"period"`
 	Stat   types.String                       `tfsdk:"stat"`
-	Unit   types.String                       `tfsdk:"unit"`
+	Unit   types.String                       `tfsdk:"unit" autoflex:",omitempty"`
 }
 
 type metricModel struct {
