@@ -10,6 +10,7 @@ import (
 	"testing"
 
 	"github.com/YakDriver/regexache"
+	"github.com/aws/aws-sdk-go-v2/aws"
 	"github.com/aws/aws-sdk-go-v2/service/applicationsignals"
 	awstypes "github.com/aws/aws-sdk-go-v2/service/applicationsignals/types"
 	sdkacctest "github.com/hashicorp/terraform-plugin-testing/helper/acctest"
@@ -167,6 +168,54 @@ func TestAccApplicationSignalsServiceLevelObjective_disappears(t *testing.T) {
 	})
 }
 
+func TestAccApplicationSignalsServiceLevelObjective_update(t *testing.T) {
+	ctx := acctest.Context(t)
+	if testing.Short() {
+		t.Skip("skipping long-running test in short mode")
+	}
+	var before, after awstypes.ServiceLevelObjective
+	rName := sdkacctest.RandomWithPrefix(acctest.ResourcePrefix)
+	resourceName := "aws_applicationsignals_service_level_objective.test"
+
+	resource.ParallelTest(t, resource.TestCase{
+		PreCheck: func() {
+			acctest.PreCheck(ctx, t)
+			// TODO - work out why this precheck fails even though sdk can create SLOs...
+			//acctest.PreCheckPartitionHasService(t, names.ApplicationSignalsServiceID)
+			testAccPreCheck(ctx, t)
+		},
+		ErrorCheck:               acctest.ErrorCheck(t, names.ApplicationSignalsServiceID),
+		ProtoV5ProviderFactories: acctest.ProtoV5ProviderFactories,
+		CheckDestroy:             testAccCheckServiceLevelObjectiveDestroy(ctx),
+		Steps: []resource.TestStep{
+			{
+				Config: testAccServiceLevelObjectiveConfig_basic(rName),
+				Check: resource.ComposeAggregateTestCheckFunc(
+					testAccCheckServiceLevelObjectiveExists(ctx, resourceName, &before),
+					resource.TestCheckResourceAttr(resourceName, names.AttrDescription, fmt.Sprintf("%s service level objective", rName)),
+				),
+			},
+			{
+				Config: testAccServiceLevelObjectiveConfig_update(rName),
+				Check: resource.ComposeAggregateTestCheckFunc(
+					testAccCheckServiceLevelObjectiveExists(ctx, resourceName, &after),
+					testAccCheckServiceLevelObjectiveNotRecreated(&before, &after),
+					resource.TestCheckResourceAttr(resourceName, names.AttrDescription, fmt.Sprintf("%s service level objective updated", rName)),
+				),
+			},
+			{
+				ResourceName:                         resourceName,
+				ImportState:                          true,
+				ImportStateIdFunc:                    testAccServiceLevelObjectiveImportStateIdFunc(resourceName),
+				ImportStateVerify:                    true,
+				ImportStateVerifyIdentifierAttribute: names.AttrName, // The attribute that uniquely identifies the resource
+				ImportStateVerifyIgnore:              []string{"apply_immediately", "user"},
+			},
+		},
+	})
+
+}
+
 func testAccCheckServiceLevelObjectiveDestroy(ctx context.Context) resource.TestCheckFunc {
 	return func(s *terraform.State) error {
 		conn := acctest.Provider.Meta().(*conns.AWSClient).ApplicationSignalsClient(ctx)
@@ -230,15 +279,20 @@ func testAccPreCheck(ctx context.Context, t *testing.T) {
 	}
 }
 
-//func testAccCheckServiceLevelObjectiveNotRecreated(before, after *awstypes.ServiceLevelObjective) resource.TestCheckFunc {
-//	return func(s *terraform.State) error {
-//		if before, after := aws.ToString(before.ServiceLevelObjectiveId), aws.ToString(after.ServiceLevelObjectiveId); before != after {
-//			return create.Error(names.ApplicationSignals, create.ErrActionCheckingNotRecreated, tfapplicationsignals.ResNameServiceLevelObjective, aws.ToString(before.ServiceLevelObjectiveId), errors.New("recreated"))
-//		}
-//
-//		return nil
-//	}
-//}
+func testAccCheckServiceLevelObjectiveNotRecreated(before, after *awstypes.ServiceLevelObjective) resource.TestCheckFunc {
+	return func(s *terraform.State) error {
+		if before, after := aws.ToString(before.Arn), aws.ToString(after.Arn); before != after {
+			return create.Error(
+				names.ApplicationSignals,
+				create.ErrActionCheckingNotRecreated,
+				tfapplicationsignals.ResNameServiceLevelObjective,
+				before+after,
+				errors.New(fmt.Sprintf("recreated (before ARN: %s, after ARN: %s)", before, after)))
+		}
+
+		return nil
+	}
+}
 
 func testAccServiceLevelObjectiveImportStateIdFunc(resourceName string) resource.ImportStateIdFunc {
 	return func(s *terraform.State) (string, error) {
@@ -258,6 +312,39 @@ func testAccServiceLevelObjectiveConfig_basic(rName string) string {
 	return fmt.Sprintf(`
 resource "aws_applicationsignals_service_level_objective" "test" {
   name = %[1]q
+  description = "%[1]s service level objective"
+  goal {
+    interval {
+      rolling_interval {
+        duration_unit = "DAY"
+        duration      = 90
+      }
+    }
+    attainment_goal   = 99.98
+    warning_threshold = 99.9
+  }
+  sli {
+    sli_metric {
+      metric_type = ""
+      metric_data_queries {
+        id = "asdfasdf"
+        expression = "FILL(METRICS(), 0)"
+        period = 60
+        return_data = true
+      }
+    }
+     comparison_operator = "LessThan"
+     metric_threshold    = 2
+  }
+}
+`, rName)
+}
+
+func testAccServiceLevelObjectiveConfig_update(rName string) string {
+	return fmt.Sprintf(`
+resource "aws_applicationsignals_service_level_objective" "test" {
+  name = %[1]q
+  description = "%[1]s service level objective updated"
   goal {
     interval {
       rolling_interval {
