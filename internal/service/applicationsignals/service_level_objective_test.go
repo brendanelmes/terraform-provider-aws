@@ -14,6 +14,7 @@ import (
 	awstypes "github.com/aws/aws-sdk-go-v2/service/applicationsignals/types"
 	sdkacctest "github.com/hashicorp/terraform-plugin-testing/helper/acctest"
 	"github.com/hashicorp/terraform-plugin-testing/helper/resource"
+	"github.com/hashicorp/terraform-plugin-testing/plancheck"
 	"github.com/hashicorp/terraform-plugin-testing/terraform"
 	"github.com/hashicorp/terraform-provider-aws/internal/acctest"
 	"github.com/hashicorp/terraform-provider-aws/internal/conns"
@@ -128,49 +129,43 @@ func TestAccApplicationSignalsServiceLevelObjective_basic(t *testing.T) {
 	})
 }
 
-//func TestAccApplicationSignalsServiceLevelObjective_disappears(t *testing.T) {
-//	ctx := acctest.Context(t)
-//	if testing.Short() {
-//		t.Skip("skipping long-running test in short mode")
-//	}
-//
-//	var servicelevelobjective awstypes.ServiceLevelObjective
-//	rName := sdkacctest.RandomWithPrefix(acctest.ResourcePrefix)
-//	resourceName := "aws_applicationsignals_service_level_objective.test"
-//
-//	resource.ParallelTest(t, resource.TestCase{
-//		PreCheck: func() {
-//			acctest.PreCheck(ctx, t)
-//			// TODO - work out why this precheck fails even though sdk can create SLOs...
-//			//acctest.PreCheckPartitionHasService(t, names.ApplicationSignalsEndpointID)
-//			testAccPreCheck(ctx, t)
-//		},
-//		ErrorCheck:               acctest.ErrorCheck(t, names.ApplicationSignalsServiceID),
-//		ProtoV5ProviderFactories: acctest.ProtoV5ProviderFactories,
-//		CheckDestroy:             testAccCheckServiceLevelObjectiveDestroy(ctx),
-//		Steps: []resource.TestStep{
-//			{
-//				Config: testAccServiceLevelObjectiveConfig_basic(rName, testAccServiceLevelObjectiveVersionNewer),
-//				Check: resource.ComposeAggregateTestCheckFunc(
-//					testAccCheckServiceLevelObjectiveExists(ctx, resourceName, &servicelevelobjective),
-//					// TIP: The Plugin-Framework disappears helper is similar to the Plugin-SDK version,
-//					// but expects a new resource factory function as the third argument. To expose this
-//					// private function to the testing package, you may need to add a line like the following
-//					// to exports_test.go:
-//					//
-//					//   var ResourceServiceLevelObjective = newResourceServiceLevelObjective
-//					acctest.CheckFrameworkResourceDisappears(ctx, acctest.Provider, tfapplicationsignals.ResourceServiceLevelObjective, resourceName),
-//				),
-//				ExpectNonEmptyPlan: true,
-//				ConfigPlanChecks: resource.ConfigPlanChecks{
-//					PostApplyPostRefresh: []plancheck.PlanCheck{
-//						plancheck.ExpectResourceAction(resourceName, plancheck.ResourceActionCreate),
-//					},
-//				},
-//			},
-//		},
-//	})
-//}
+func TestAccApplicationSignalsServiceLevelObjective_disappears(t *testing.T) {
+	ctx := acctest.Context(t)
+	if testing.Short() {
+		t.Skip("skipping long-running test in short mode")
+	}
+
+	var servicelevelobjective awstypes.ServiceLevelObjective
+	rName := sdkacctest.RandomWithPrefix(acctest.ResourcePrefix)
+	resourceName := "aws_applicationsignals_service_level_objective.test"
+
+	resource.ParallelTest(t, resource.TestCase{
+		PreCheck: func() {
+			acctest.PreCheck(ctx, t)
+			// TODO - work out why this precheck fails even though sdk can create SLOs...
+			//acctest.PreCheckPartitionHasService(t, names.ApplicationSignalsEndpointID)
+			testAccPreCheck(ctx, t)
+		},
+		ErrorCheck:               acctest.ErrorCheck(t, names.ApplicationSignalsServiceID),
+		ProtoV5ProviderFactories: acctest.ProtoV5ProviderFactories,
+		CheckDestroy:             testAccCheckServiceLevelObjectiveDestroy(ctx),
+		Steps: []resource.TestStep{
+			{
+				Config: testAccServiceLevelObjectiveConfig_basic(rName),
+				Check: resource.ComposeAggregateTestCheckFunc(
+					testAccCheckServiceLevelObjectiveExists(ctx, resourceName, &servicelevelobjective),
+					acctest.CheckFrameworkResourceDisappears(ctx, acctest.Provider, tfapplicationsignals.ResourceServiceLevelObjective, resourceName),
+				),
+				ExpectNonEmptyPlan: true,
+				ConfigPlanChecks: resource.ConfigPlanChecks{
+					PostApplyPostRefresh: []plancheck.PlanCheck{
+						plancheck.ExpectResourceAction(resourceName, plancheck.ResourceActionCreate),
+					},
+				},
+			},
+		},
+	})
+}
 
 func testAccCheckServiceLevelObjectiveDestroy(ctx context.Context) resource.TestCheckFunc {
 	return func(s *terraform.State) error {

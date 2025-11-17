@@ -5,5 +5,7 @@ package applicationsignals
 
 // Exports for use in tests only.
 var (
+	ResourceServiceLevelObjective = newResourceServiceLevelObjective
+
 	FindServiceLevelObjectiveByID = findServiceLevelObjectiveByID
 )
