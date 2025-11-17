@@ -24,12 +24,15 @@ import (
 	"github.com/hashicorp/terraform-plugin-framework/schema/validator"
 	"github.com/hashicorp/terraform-plugin-framework/types"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/retry"
+	"github.com/hashicorp/terraform-provider-aws/internal/conns"
 	"github.com/hashicorp/terraform-provider-aws/internal/errs"
 	"github.com/hashicorp/terraform-provider-aws/internal/errs/fwdiag"
 	"github.com/hashicorp/terraform-provider-aws/internal/framework"
 	"github.com/hashicorp/terraform-provider-aws/internal/framework/flex"
 	fwtypes "github.com/hashicorp/terraform-provider-aws/internal/framework/types"
 	"github.com/hashicorp/terraform-provider-aws/internal/smerr"
+	"github.com/hashicorp/terraform-provider-aws/internal/sweep"
+	sweepfw "github.com/hashicorp/terraform-provider-aws/internal/sweep/framework"
 	"github.com/hashicorp/terraform-provider-aws/internal/tfresource"
 	"github.com/hashicorp/terraform-provider-aws/names"
 )
@@ -386,13 +389,6 @@ func (r *resourceServiceLevelObjective) Delete(ctx context.Context, req resource
 	}
 }
 
-// TIP: ==== TERRAFORM IMPORTING ====
-// If Read can get all the information it needs from the Identifier
-// (i.e., path.Root("id")), you can use the PassthroughID importer. Otherwise,
-// you'll need a custom import function.
-//
-// See more:
-// https://developer.hashicorp.com/terraform/plugin/framework/resources/import
 func (r *resourceServiceLevelObjective) ImportState(ctx context.Context, req resource.ImportStateRequest, resp *resource.ImportStateResponse) {
 	resource.ImportStatePassthroughID(ctx, path.Root(names.AttrName), req, resp)
 }
@@ -1030,41 +1026,24 @@ type dependencyConfigModel struct {
 	DependencyOperationName types.String `tfsdk:"dependency_operation_name"`
 }
 
-// TIP: ==== SWEEPERS ====
-// When acceptance testing resources, interrupted or failed tests may
-// leave behind orphaned resources in an account. To facilitate cleaning
-// up lingering resources, each resource implementation should include
-// a corresponding "sweeper" function.
-//
-// The sweeper function lists all resources of a given type and sets the
-// appropriate identifers required to delete the resource via the Delete
-// method implemented above.
-//
-// Once the sweeper function is implemented, register it in sweep.go
-// as follows:
-//
-//	awsv2.Register("aws_applicationsignals_service_level_objective", sweepServiceLevelObjectives)
-//
-// See more:
-// https://hashicorp.github.io/terraform-provider-aws/running-and-writing-acceptance-tests/#acceptance-test-sweepers
-//func sweepServiceLevelObjectives(ctx context.Context, client *conns.AWSClient) ([]sweep.Sweepable, error) {
-//	input := applicationsignals.ListServiceLevelObjectivesInput{}
-//	conn := client.ApplicationSignalsClient(ctx)
-//	var sweepResources []sweep.Sweepable
-//
-//	pages := applicationsignals.NewListServiceLevelObjectivesPaginator(conn, &input)
-//	for pages.HasMorePages() {
-//		page, err := pages.NextPage(ctx)
-//		if err != nil {
-//			return nil, smarterr.NewError(err)
-//		}
-//
-//		for _, v := range page.Slos {
-//			sweepResources = append(sweepResources, sweepfw.NewSweepResource(newResourceServiceLevelObjective, client,
-//				sweepfw.NewAttribute(names.AttrID, aws.ToString(v.ServiceLevelObjectiveId))),
-//			)
-//		}
-//	}
-//
-//	return sweepResources, nil
-//}
+func sweepServiceLevelObjectives(ctx context.Context, client *conns.AWSClient) ([]sweep.Sweepable, error) {
+	input := applicationsignals.ListServiceLevelObjectivesInput{}
+	conn := client.ApplicationSignalsClient(ctx)
+	var sweepResources []sweep.Sweepable
+
+	pages := applicationsignals.NewListServiceLevelObjectivesPaginator(conn, &input)
+	for pages.HasMorePages() {
+		page, err := pages.NextPage(ctx)
+		if err != nil {
+			return nil, smarterr.NewError(err)
+		}
+
+		for _, v := range page.SloSummaries {
+			sweepResources = append(sweepResources, sweepfw.NewSweepResource(newResourceServiceLevelObjective, client,
+				sweepfw.NewAttribute(names.AttrID, aws.ToString(v.Name))),
+			)
+		}
+	}
+
+	return sweepResources, nil
+}
