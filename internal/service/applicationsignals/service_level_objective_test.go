@@ -112,7 +112,7 @@ func TestAccApplicationSignalsServiceLevelObjective_basic(t *testing.T) {
 				Config: testAccServiceLevelObjectiveConfig_basic(rName),
 				Check: resource.ComposeAggregateTestCheckFunc(
 					testAccCheckServiceLevelObjectiveExists(ctx, resourceName, &servicelevelobjective),
-					//resource.TestCheckResourceAttr(resourceName, "name", rName),
+					resource.TestCheckResourceAttr(resourceName, "name", rName),
 					acctest.MatchResourceAttrRegionalARN(ctx, resourceName, names.AttrARN, "application-signals", regexache.MustCompile(`slo/`+rName)),
 				),
 			},
@@ -134,14 +134,15 @@ func TestAccApplicationSignalsServiceLevelObjective_basic(t *testing.T) {
 //		t.Skip("skipping long-running test in short mode")
 //	}
 //
-//	var servicelevelobjective applicationsignals.DescribeServiceLevelObjectiveResponse
+//	var servicelevelobjective awstypes.ServiceLevelObjective
 //	rName := sdkacctest.RandomWithPrefix(acctest.ResourcePrefix)
 //	resourceName := "aws_applicationsignals_service_level_objective.test"
 //
 //	resource.ParallelTest(t, resource.TestCase{
 //		PreCheck: func() {
 //			acctest.PreCheck(ctx, t)
-//			acctest.PreCheckPartitionHasService(t, names.ApplicationSignalsEndpointID)
+//			// TODO - work out why this precheck fails even though sdk can create SLOs...
+//			//acctest.PreCheckPartitionHasService(t, names.ApplicationSignalsEndpointID)
 //			testAccPreCheck(ctx, t)
 //		},
 //		ErrorCheck:               acctest.ErrorCheck(t, names.ApplicationSignalsServiceID),
@@ -202,19 +203,6 @@ func testAccCheckServiceLevelObjectiveExists(ctx context.Context, name string, s
 			return create.Error(names.ApplicationSignals, create.ErrActionCheckingExistence, tfapplicationsignals.ResNameServiceLevelObjective, name, errors.New("not found"))
 		}
 
-		//fmt.Printf("[DEBUG] Raw ResourceState (rs):\n%+v\n", rs)
-		//
-		//// Log the critical fields for debugging the existence check:
-		//fmt.Printf("[DEBUG] Resource ID (rs.Primary.ID): %s\n", rs.Primary.ID)
-		//fmt.Printf("[DEBUG] Resource Type (rs.Type): %s\n", rs.Type)
-		//fmt.Printf("[DEBUG] Attributes:\n")
-
-		// Iterate through attributes to see what's set (useful for debugging 'id-attribute-not-set'):
-		for k, v := range rs.Primary.Attributes {
-			fmt.Printf("    %s: %s\n", k, v)
-		}
-		// --- END LOGGING CODE ---
-
 		if rs.Primary.Attributes["name"] == "" {
 			return create.Error(names.ApplicationSignals, create.ErrActionCheckingExistence, tfapplicationsignals.ResNameServiceLevelObjective, name, errors.New("not set"))
 		}
@@ -226,20 +214,7 @@ func testAccCheckServiceLevelObjectiveExists(ctx context.Context, name string, s
 			return create.Error(names.ApplicationSignals, create.ErrActionCheckingExistence, tfapplicationsignals.ResNameServiceLevelObjective, rs.Primary.Attributes["name"], err)
 		}
 
-		fmt.Printf("[DEBUG] AWS API Response (ServiceLevelObjective):\n%+v\n", resp)
-
-		// --- FIX START ---
-		// 1. Initialize the ServiceLevelObjectiveOutput struct if it's nil
-		//    (It won't be nil here because the test passes it by reference to a local var,
-		//     but as a defensive measure if the test passed a pointer to nil)
-		// 2. Assign the returned SLO object pointer (`resp`) to the `.Slo` field.
-
-		if servicelevelobjective == nil {
-			return errors.New("GetServiceLevelObjectiveOutput struct pointer is nil")
-		}
-
 		*servicelevelobjective = *resp
-		// --- FIX END ---
 
 		return nil
 	}
@@ -260,7 +235,7 @@ func testAccPreCheck(ctx context.Context, t *testing.T) {
 	}
 }
 
-//func testAccCheckServiceLevelObjectiveNotRecreated(before, after *applicationsignals.DescribeServiceLevelObjectiveResponse) resource.TestCheckFunc {
+//func testAccCheckServiceLevelObjectiveNotRecreated(before, after *awstypes.ServiceLevelObjective) resource.TestCheckFunc {
 //	return func(s *terraform.State) error {
 //		if before, after := aws.ToString(before.ServiceLevelObjectiveId), aws.ToString(after.ServiceLevelObjectiveId); before != after {
 //			return create.Error(names.ApplicationSignals, create.ErrActionCheckingNotRecreated, tfapplicationsignals.ResNameServiceLevelObjective, aws.ToString(before.ServiceLevelObjectiveId), errors.New("recreated"))
@@ -276,7 +251,6 @@ func testAccServiceLevelObjectiveImportStateIdFunc(resourceName string) resource
 		if !ok {
 			return "", fmt.Errorf("Not found: %s", resourceName)
 		}
-		// Return the value of the 'name' attribute
 		name, ok := rs.Primary.Attributes[names.AttrName]
 		if !ok {
 			return "", fmt.Errorf("Name attribute not found in state for resource: %s", resourceName)
@@ -284,8 +258,6 @@ func testAccServiceLevelObjectiveImportStateIdFunc(resourceName string) resource
 		return name, nil
 	}
 }
-
-// AWS_PROFILE=Admin-Sandbox AWS_DEFAULT_REGION=eu-west-2 make testacc TESTS='TestAccApplicationSignalsServiceLevelObjective_basic' PKG=applicationsignals
 
 func testAccServiceLevelObjectiveConfig_basic(rName string) string {
 	return fmt.Sprintf(`
