@@ -6,6 +6,7 @@ package applicationsignals
 import (
 	"context"
 	"errors"
+	"fmt"
 	"reflect"
 	"time"
 
@@ -393,7 +394,7 @@ func (r *resourceServiceLevelObjective) Delete(ctx context.Context, req resource
 // See more:
 // https://developer.hashicorp.com/terraform/plugin/framework/resources/import
 func (r *resourceServiceLevelObjective) ImportState(ctx context.Context, req resource.ImportStateRequest, resp *resource.ImportStateResponse) {
-	resource.ImportStatePassthroughID(ctx, path.Root(names.AttrID), req, resp)
+	resource.ImportStatePassthroughID(ctx, path.Root(names.AttrName), req, resp)
 }
 
 func findServiceLevelObjectiveByID(ctx context.Context, conn *applicationsignals.Client, name string) (*awstypes.ServiceLevelObjective, error) {
@@ -429,7 +430,89 @@ var (
 
 	_ flex.Flattener = &monitoredRequestCountMetricModel{}
 	_ flex.Expander  = monitoredRequestCountMetricModel{}
+
+	_ flex.Flattener = &resourceServiceLevelObjectiveModel{}
 )
+
+func (m *resourceServiceLevelObjectiveModel) Flatten(ctx context.Context, v any) diag.Diagnostics {
+	var diags diag.Diagnostics
+	var apiModel *awstypes.ServiceLevelObjective
+
+	if ptr, ok := v.(*awstypes.ServiceLevelObjective); ok {
+		apiModel = ptr
+	} else if val, ok := v.(awstypes.ServiceLevelObjective); ok {
+		apiModel = &val
+	} else {
+		diags.AddError("Flatten Error", fmt.Sprintf("Invalid type: expected *ServiceLevelObjective or ServiceLevelObjective, got %T", v))
+		return diags
+	}
+
+	if apiModel.CreatedTime != nil {
+		m.CreatedTime = timetypes.NewRFC3339ValueMust(apiModel.CreatedTime.Format(time.RFC3339))
+	} else {
+		m.CreatedTime = timetypes.NewRFC3339Null()
+	}
+
+	if apiModel.LastUpdatedTime != nil {
+		m.LastUpdatedTime = timetypes.NewRFC3339ValueMust(apiModel.LastUpdatedTime.Format(time.RFC3339))
+	} else {
+		m.LastUpdatedTime = timetypes.NewRFC3339Null()
+	}
+
+	if apiModel.Arn != nil {
+		m.ARN = types.StringValue(*apiModel.Arn)
+	} else {
+		m.ARN = types.StringNull()
+	}
+	if apiModel.Name != nil {
+		m.Name = types.StringValue(*apiModel.Name)
+	} else {
+		m.Name = types.StringNull()
+	}
+	if apiModel.Description != nil {
+		m.Description = types.StringValue(*apiModel.Description)
+	} else {
+		m.Description = types.StringNull()
+	}
+	if apiModel.EvaluationType != "" {
+		m.EvaluationType = types.StringValue(string(apiModel.EvaluationType))
+	} else {
+		m.EvaluationType = types.StringNull()
+	}
+	if apiModel.MetricSourceType != "" {
+		m.MetricSourceType = types.StringValue(string(apiModel.MetricSourceType))
+	} else {
+		m.MetricSourceType = types.StringNull()
+	}
+
+	if apiModel.Goal != nil {
+		var goalModel goalModel
+		diags.Append(flex.Flatten(ctx, *apiModel.Goal, &goalModel)...)
+		m.Goal = fwtypes.NewObjectValueOfMust(ctx, &goalModel)
+	}
+
+	if apiModel.Sli != nil { // Note: API field is SliConfig
+		var sliModel sliModel
+		diags.Append(flex.Flatten(ctx, *apiModel.Sli, &sliModel)...)
+		if !diags.HasError() {
+			m.Sli = fwtypes.NewObjectValueOfMust(ctx, &sliModel)
+		}
+	} else {
+		m.Sli = fwtypes.NewObjectValueOfNull[sliModel](ctx)
+	}
+
+	if apiModel.RequestBasedSli != nil { // Note: API field is RequestBasedSliConfig
+		var reqSliModel requestBasedSliModel
+		diags.Append(flex.Flatten(ctx, *apiModel.RequestBasedSli, &reqSliModel)...)
+		if !diags.HasError() {
+			m.RequestBasedSli = fwtypes.NewObjectValueOfMust(ctx, &reqSliModel)
+		}
+	} else {
+		m.RequestBasedSli = fwtypes.NewObjectValueOfNull[requestBasedSliModel](ctx)
+	}
+
+	return diags
+}
 
 func (m *intervalModel) Flatten(ctx context.Context, v any) diag.Diagnostics {
 	var diags diag.Diagnostics
@@ -834,36 +917,6 @@ func (m *monitoredRequestCountMetricModel) Flatten(ctx context.Context, v any) d
 
 	return diags
 }
-
-//func (m *requestBasedSliMetricModel) Flatten(ctx context.Context, v any) diag.Diagnostics {
-//	var diags diag.Diagnostics
-//
-//	apiModel, ok := v.(awstypes.RequestBasedServiceLevelIndicatorMetric)
-//	if !ok {
-//		return diag.Diagnostics{
-//			diag.NewErrorDiagnostic("Flatten Error", "Invalid type passed to Flatten for requestBasedSliMetricModel"),
-//		}
-//	}
-//
-//	if apiModel.MetricType == "" {
-//		m.MetricType = types.StringNull()
-//	} else {
-//		m.MetricType = types.StringValue(string(apiModel.MetricType))
-//	}
-//
-//	if apiModel.MonitoredRequestCountMetric == nil {
-//		m.MonitoredRequestCountMetric = fwtypes.NewObjectValueOfNull[monitoredRequestCountMetricModel](ctx)
-//	} else {
-//		var nestedModel monitoredRequestCountMetricModel
-//		innerDiags := flex.Flatten(ctx, apiModel.MonitoredRequestCountMetric, &nestedModel)
-//		diags.Append(innerDiags...)
-//		if !innerDiags.HasError() {
-//			m.MonitoredRequestCountMetric = fwtypes.NewObjectValueOfMust(ctx, &nestedModel)
-//		}
-//	}
-//
-//	return diags
-//}
 
 type resourceServiceLevelObjectiveModel struct {
 	framework.WithRegionModel
