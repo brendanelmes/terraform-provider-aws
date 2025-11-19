@@ -446,6 +446,13 @@ func stringPtr(v types.String) *string {
 	return &val
 }
 
+func flattenTimePtr(t *time.Time) timetypes.RFC3339 {
+	if t == nil {
+		return timetypes.NewRFC3339Null()
+	}
+	return timetypes.NewRFC3339ValueMust(t.Format(time.RFC3339))
+}
+
 var (
 	_ flex.Expander  = intervalModel{}
 	_ flex.Flattener = &intervalModel{}
@@ -832,17 +839,8 @@ func (m *resourceServiceLevelObjectiveModel) Flatten(ctx context.Context, v any)
 		return diags
 	}
 
-	if apiModel.CreatedTime != nil {
-		m.CreatedTime = timetypes.NewRFC3339ValueMust(apiModel.CreatedTime.Format(time.RFC3339))
-	} else {
-		m.CreatedTime = timetypes.NewRFC3339Null()
-	}
-
-	if apiModel.LastUpdatedTime != nil {
-		m.LastUpdatedTime = timetypes.NewRFC3339ValueMust(apiModel.LastUpdatedTime.Format(time.RFC3339))
-	} else {
-		m.LastUpdatedTime = timetypes.NewRFC3339Null()
-	}
+	m.CreatedTime = flattenTimePtr(apiModel.CreatedTime)
+	m.LastUpdatedTime = flattenTimePtr(apiModel.LastUpdatedTime)
 
 	if apiModel.Arn != nil {
 		m.ARN = types.StringValue(*apiModel.Arn)
