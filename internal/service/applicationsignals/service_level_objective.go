@@ -446,6 +446,13 @@ func stringPtr(v types.String) *string {
 	return &val
 }
 
+func flattenStringPtr(v *string) types.String {
+	if v == nil {
+		return types.StringNull()
+	}
+	return types.StringValue(*v)
+}
+
 func flattenTimePtr(t *time.Time) timetypes.RFC3339 {
 	if t == nil {
 		return timetypes.NewRFC3339Null()
@@ -534,7 +541,8 @@ func (m *intervalModel) Flatten(ctx context.Context, v any) diag.Diagnostics {
 func (m monitoredRequestCountMetricModel) Expand(ctx context.Context) (any, diag.Diagnostics) {
 	var diags diag.Diagnostics
 
-	if !m.GoodCountMetric.IsNull() && !m.GoodCountMetric.IsUnknown() {
+	switch {
+	case !m.GoodCountMetric.IsNull() && !m.GoodCountMetric.IsUnknown():
 		var r awstypes.MonitoredRequestCountMetricDataQueriesMemberGoodCountMetric
 		diags.Append(flex.Expand(ctx, m.GoodCountMetric, &r.Value)...)
 		if diags.HasError() {
@@ -542,9 +550,8 @@ func (m monitoredRequestCountMetricModel) Expand(ctx context.Context) (any, diag
 		}
 
 		return &r, diags
-	}
 
-	if !m.BadCountMetric.IsNull() && !m.BadCountMetric.IsUnknown() {
+	case !m.BadCountMetric.IsNull() && !m.BadCountMetric.IsUnknown():
 		var r awstypes.MonitoredRequestCountMetricDataQueriesMemberBadCountMetric
 		diags.Append(flex.Expand(ctx, m.BadCountMetric, &r.Value)...)
 		if diags.HasError() {
@@ -553,7 +560,6 @@ func (m monitoredRequestCountMetricModel) Expand(ctx context.Context) (any, diag
 
 		return &r, diags
 	}
-
 	return nil, diags
 }
 
@@ -761,21 +767,6 @@ func (m resourceServiceLevelObjectiveModel) expandToCreateServiceLevelObjectiveI
 	input.Name = stringPtr(m.Name)
 	input.Description = stringPtr(m.Description)
 
-	if !m.Goal.IsNull() {
-		goalData, d := m.Goal.ToPtr(ctx)
-		diags.Append(d...)
-		if diags.HasError() {
-			return nil, diags
-		}
-
-		var goal awstypes.Goal
-		diags.Append(flex.Expand(ctx, goalData, &goal)...)
-		if diags.HasError() {
-			return nil, diags
-		}
-		input.Goal = &goal
-	}
-
 	if !m.BurnRateConfigurations.IsNull() {
 		var configs []burnRateConfigurationModel
 		diags.Append(m.BurnRateConfigurations.ElementsAs(ctx, &configs, false)...)
@@ -791,6 +782,21 @@ func (m resourceServiceLevelObjectiveModel) expandToCreateServiceLevelObjectiveI
 		}
 
 		input.BurnRateConfigurations = burns
+	}
+
+	if !m.Goal.IsNull() {
+		goalData, d := m.Goal.ToPtr(ctx)
+		diags.Append(d...)
+		if diags.HasError() {
+			return nil, diags
+		}
+
+		var goal awstypes.Goal
+		diags.Append(flex.Expand(ctx, goalData, &goal)...)
+		if diags.HasError() {
+			return nil, diags
+		}
+		input.Goal = &goal
 	}
 
 	if !m.Sli.IsNull() {
@@ -828,6 +834,7 @@ func (m resourceServiceLevelObjectiveModel) expandToCreateServiceLevelObjectiveI
 
 func (m *resourceServiceLevelObjectiveModel) Flatten(ctx context.Context, v any) diag.Diagnostics {
 	var diags diag.Diagnostics
+
 	var apiModel *awstypes.ServiceLevelObjective
 
 	if ptr, ok := v.(*awstypes.ServiceLevelObjective); ok {
@@ -839,24 +846,13 @@ func (m *resourceServiceLevelObjectiveModel) Flatten(ctx context.Context, v any)
 		return diags
 	}
 
+	m.ARN = flattenStringPtr(apiModel.Arn)
+	m.Description = flattenStringPtr(apiModel.Description)
+	m.Name = flattenStringPtr(apiModel.Name)
+
 	m.CreatedTime = flattenTimePtr(apiModel.CreatedTime)
 	m.LastUpdatedTime = flattenTimePtr(apiModel.LastUpdatedTime)
 
-	if apiModel.Arn != nil {
-		m.ARN = types.StringValue(*apiModel.Arn)
-	} else {
-		m.ARN = types.StringNull()
-	}
-	if apiModel.Name != nil {
-		m.Name = types.StringValue(*apiModel.Name)
-	} else {
-		m.Name = types.StringNull()
-	}
-	if apiModel.Description != nil {
-		m.Description = types.StringValue(*apiModel.Description)
-	} else {
-		m.Description = types.StringNull()
-	}
 	if apiModel.EvaluationType != "" {
 		m.EvaluationType = types.StringValue(string(apiModel.EvaluationType))
 	} else {
@@ -866,6 +862,27 @@ func (m *resourceServiceLevelObjectiveModel) Flatten(ctx context.Context, v any)
 		m.MetricSourceType = types.StringValue(string(apiModel.MetricSourceType))
 	} else {
 		m.MetricSourceType = types.StringNull()
+	}
+
+	if apiModel.BurnRateConfigurations != nil {
+
+		models := make([]burnRateConfigurationModel, 0, len(apiModel.BurnRateConfigurations))
+
+		for _, apiValue := range apiModel.BurnRateConfigurations {
+			var model burnRateConfigurationModel
+			diags.Append(flex.Flatten(ctx, apiValue, &model)...)
+			if diags.HasError() {
+				return diags
+			}
+			models = append(models, model)
+		}
+
+		listValue, listDiags := fwtypes.NewListNestedObjectValueOfValueSlice(ctx, models)
+		diags.Append(listDiags...)
+
+		m.BurnRateConfigurations = listValue
+	} else {
+		m.BurnRateConfigurations = fwtypes.NewListNestedObjectValueOfNull[burnRateConfigurationModel](ctx)
 	}
 
 	if apiModel.Goal != nil {
@@ -892,27 +909,6 @@ func (m *resourceServiceLevelObjectiveModel) Flatten(ctx context.Context, v any)
 		}
 	} else {
 		m.RequestBasedSli = fwtypes.NewObjectValueOfNull[requestBasedSliModel](ctx)
-	}
-
-	if apiModel.BurnRateConfigurations != nil {
-
-		models := make([]burnRateConfigurationModel, 0, len(apiModel.BurnRateConfigurations))
-
-		for _, apiValue := range apiModel.BurnRateConfigurations {
-			var model burnRateConfigurationModel
-			diags.Append(flex.Flatten(ctx, apiValue, &model)...)
-			if diags.HasError() {
-				return diags
-			}
-			models = append(models, model)
-		}
-
-		listValue, listDiags := fwtypes.NewListNestedObjectValueOfValueSlice(ctx, models)
-		diags.Append(listDiags...)
-
-		m.BurnRateConfigurations = listValue
-	} else {
-		m.BurnRateConfigurations = fwtypes.NewListNestedObjectValueOfNull[burnRateConfigurationModel](ctx)
 	}
 
 	return diags
