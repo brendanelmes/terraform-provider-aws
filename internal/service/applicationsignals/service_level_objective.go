@@ -88,6 +88,14 @@ func (r *resourceServiceLevelObjective) Schema(ctx context.Context, req resource
 			},
 		},
 		Blocks: map[string]schema.Block{
+			"burn_rate_configurations": schema.ListNestedBlock{
+				CustomType: fwtypes.NewListNestedObjectTypeOf[burnRateConfigurationModel](ctx),
+				NestedObject: schema.NestedBlockObject{
+					Attributes: map[string]schema.Attribute{
+						"look_back_window_minutes": schema.Int32Attribute{Optional: true},
+					},
+				},
+			},
 			"goal": schema.SingleNestedBlock{
 				CustomType: fwtypes.NewObjectTypeOf[goalModel](ctx),
 				Attributes: map[string]schema.Attribute{
@@ -134,14 +142,6 @@ func (r *resourceServiceLevelObjective) Schema(ctx context.Context, req resource
 								},
 							},
 						},
-					},
-				},
-			},
-			"burn_rate_configurations": schema.ListNestedBlock{
-				CustomType: fwtypes.NewListNestedObjectTypeOf[burnRateConfigurationModel](ctx),
-				NestedObject: schema.NestedBlockObject{
-					Attributes: map[string]schema.Attribute{
-						"look_back_window_minutes": schema.Int32Attribute{Optional: true},
 					},
 				},
 			},
@@ -514,6 +514,27 @@ func (m *resourceServiceLevelObjectiveModel) Flatten(ctx context.Context, v any)
 		m.RequestBasedSli = fwtypes.NewObjectValueOfNull[requestBasedSliModel](ctx)
 	}
 
+	if apiModel.BurnRateConfigurations != nil {
+
+		models := make([]burnRateConfigurationModel, 0, len(apiModel.BurnRateConfigurations))
+
+		for _, apiValue := range apiModel.BurnRateConfigurations {
+			var model burnRateConfigurationModel
+			diags.Append(flex.Flatten(ctx, apiValue, &model)...)
+			if diags.HasError() {
+				return diags
+			}
+			models = append(models, model)
+		}
+
+		listValue, listDiags := fwtypes.NewListNestedObjectValueOfValueSlice(ctx, models)
+		diags.Append(listDiags...)
+
+		m.BurnRateConfigurations = listValue
+	} else {
+		m.BurnRateConfigurations = fwtypes.NewListNestedObjectValueOfNull[burnRateConfigurationModel](ctx)
+	}
+
 	return diags
 }
 
@@ -585,17 +606,19 @@ func (m resourceServiceLevelObjectiveModel) expandToUpdateServiceLevelObjectiveI
 	}
 
 	if !m.BurnRateConfigurations.IsNull() {
-		burnData, d := m.BurnRateConfigurations.ToPtr(ctx)
-		diags.Append(d...)
+		var configs []burnRateConfigurationModel
+		diags.Append(m.BurnRateConfigurations.ElementsAs(ctx, &configs, false)...)
 		if diags.HasError() {
 			return nil, diags
 		}
 
-		var burns []awstypes.BurnRateConfiguration
-		diags.Append(flex.Expand(ctx, burnData, &burns)...)
-		if diags.HasError() {
-			return nil, diags
+		burns := make([]awstypes.BurnRateConfiguration, len(configs))
+		for i, c := range configs {
+			burns[i] = awstypes.BurnRateConfiguration{
+				LookBackWindowMinutes: c.LookBackWindowMinutes.ValueInt32Pointer(),
+			}
 		}
+
 		input.BurnRateConfigurations = burns
 	}
 
@@ -655,17 +678,19 @@ func (m resourceServiceLevelObjectiveModel) expandToCreateServiceLevelObjectiveI
 	}
 
 	if !m.BurnRateConfigurations.IsNull() {
-		burnData, d := m.BurnRateConfigurations.ToPtr(ctx)
-		diags.Append(d...)
+		var configs []burnRateConfigurationModel
+		diags.Append(m.BurnRateConfigurations.ElementsAs(ctx, &configs, false)...)
 		if diags.HasError() {
 			return nil, diags
 		}
 
-		var burns []awstypes.BurnRateConfiguration
-		diags.Append(flex.Expand(ctx, burnData, &burns)...)
-		if diags.HasError() {
-			return nil, diags
+		burns := make([]awstypes.BurnRateConfiguration, len(configs))
+		for i, c := range configs {
+			burns[i] = awstypes.BurnRateConfiguration{
+				LookBackWindowMinutes: c.LookBackWindowMinutes.ValueInt32Pointer(),
+			}
 		}
+
 		input.BurnRateConfigurations = burns
 	}
 
