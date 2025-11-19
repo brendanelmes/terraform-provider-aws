@@ -167,17 +167,7 @@ func (r *resourceServiceLevelObjective) Schema(ctx context.Context, req resource
 							"operation_name": schema.StringAttribute{Optional: true},
 						},
 						Blocks: map[string]schema.Block{
-							"dependency_config": schema.SingleNestedBlock{
-								CustomType: fwtypes.NewObjectTypeOf[dependencyConfigModel](ctx),
-								Attributes: map[string]schema.Attribute{
-									"dependency_key_attributes": schema.MapAttribute{
-										CustomType:  fwtypes.MapOfStringType,
-										ElementType: types.StringType,
-										Optional:    true,
-									},
-									"dependency_operation_name": schema.StringAttribute{Optional: true},
-								},
-							},
+							"dependency_config": dependencyConfigBlock(ctx),
 							"monitored_request_count_metric": schema.SingleNestedBlock{
 								CustomType: fwtypes.NewObjectTypeOf[monitoredRequestCountMetricModel](ctx),
 								Blocks: map[string]schema.Block{
@@ -217,17 +207,7 @@ func (r *resourceServiceLevelObjective) Schema(ctx context.Context, req resource
 							"statistic":      schema.StringAttribute{Optional: true},
 						},
 						Blocks: map[string]schema.Block{
-							"dependency_config": schema.SingleNestedBlock{
-								CustomType: fwtypes.NewObjectTypeOf[dependencyConfigModel](ctx),
-								Attributes: map[string]schema.Attribute{
-									"dependency_key_attributes": schema.MapAttribute{
-										CustomType:  fwtypes.MapOfStringType,
-										ElementType: types.StringType,
-										Optional:    true,
-									},
-									"dependency_operation_name": schema.StringAttribute{Optional: true},
-								},
-							},
+							"dependency_config":   dependencyConfigBlock(ctx),
 							"metric_data_queries": metricDataQueriesBlock(ctx),
 						},
 					},
@@ -238,6 +218,20 @@ func (r *resourceServiceLevelObjective) Schema(ctx context.Context, req resource
 				Update: true,
 				Delete: true,
 			}),
+		},
+	}
+}
+
+func dependencyConfigBlock(ctx context.Context) schema.SingleNestedBlock {
+	return schema.SingleNestedBlock{
+		CustomType: fwtypes.NewObjectTypeOf[dependencyConfigModel](ctx),
+		Attributes: map[string]schema.Attribute{
+			"dependency_key_attributes": schema.MapAttribute{
+				CustomType:  fwtypes.MapOfStringType,
+				ElementType: types.StringType,
+				Optional:    true,
+			},
+			"dependency_operation_name": schema.StringAttribute{Optional: true},
 		},
 	}
 }
