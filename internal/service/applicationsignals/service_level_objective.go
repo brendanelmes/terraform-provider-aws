@@ -147,26 +147,36 @@ func (r *resourceServiceLevelObjective) Schema(ctx context.Context, req resource
 				CustomType: fwtypes.NewObjectTypeOf[requestBasedSliModel](ctx),
 				Validators: []validator.Object{
 					objectvalidator.ExactlyOneOf(
-						path.Expressions{
-							path.MatchRelative().AtParent().AtName("sli"),
-						}...),
+						path.MatchRelative().AtParent().AtName("sli"),
+					),
 				},
 				Attributes: map[string]schema.Attribute{
-					"metric_threshold":    schema.Float64Attribute{Optional: true},
 					"comparison_operator": schema.StringAttribute{Optional: true},
+					"metric_threshold":    schema.Float64Attribute{Optional: true},
 				},
 				Blocks: map[string]schema.Block{
 					"request_based_sli_metric": schema.SingleNestedBlock{
 						CustomType: fwtypes.NewObjectTypeOf[requestBasedSliMetricModel](ctx),
 						Attributes: map[string]schema.Attribute{
-							"key_attributes": schema.MapAttribute{CustomType: fwtypes.MapOfStringType, ElementType: types.StringType, Optional: true},
+							"key_attributes": schema.MapAttribute{
+								CustomType:  fwtypes.MapOfStringType,
+								ElementType: types.StringType,
+								Optional:    true,
+							},
 							"metric_type":    schema.StringAttribute{Optional: true},
 							"operation_name": schema.StringAttribute{Optional: true},
 						},
 						Blocks: map[string]schema.Block{
-							"total_request_count_metric": metricDataQueriesBlock(ctx),
 							"dependency_config": schema.SingleNestedBlock{
 								CustomType: fwtypes.NewObjectTypeOf[dependencyConfigModel](ctx),
+								Attributes: map[string]schema.Attribute{
+									"dependency_key_attributes": schema.MapAttribute{
+										CustomType:  fwtypes.MapOfStringType,
+										ElementType: types.StringType,
+										Optional:    true,
+									},
+									"dependency_operation_name": schema.StringAttribute{Optional: true},
+								},
 							},
 							"monitored_request_count_metric": schema.SingleNestedBlock{
 								CustomType: fwtypes.NewObjectTypeOf[monitoredRequestCountMetricModel](ctx),
@@ -175,6 +185,7 @@ func (r *resourceServiceLevelObjective) Schema(ctx context.Context, req resource
 									"bad_count_metric":  metricDataQueriesBlock(ctx),
 								},
 							},
+							"total_request_count_metric": metricDataQueriesBlock(ctx),
 						},
 					},
 				},
@@ -993,18 +1004,18 @@ type rollingIntervalModel struct {
 }
 
 type requestBasedSliModel struct {
-	RequestBasedSliMetric fwtypes.ObjectValueOf[requestBasedSliMetricModel] `tfsdk:"request_based_sli_metric"`
 	ComparisonOperator    types.String                                      `tfsdk:"comparison_operator"`
 	MetricThreshold       types.Float64                                     `tfsdk:"metric_threshold"`
+	RequestBasedSliMetric fwtypes.ObjectValueOf[requestBasedSliMetricModel] `tfsdk:"request_based_sli_metric"`
 }
 
 type requestBasedSliMetricModel struct {
-	TotalRequestCountMetric     fwtypes.ListNestedObjectValueOf[metricDataQueryModel]   `tfsdk:"total_request_count_metric"`
 	DependencyConfig            fwtypes.ObjectValueOf[dependencyConfigModel]            `tfsdk:"dependency_config"`
 	KeyAttributes               fwtypes.MapOfString                                     `tfsdk:"key_attributes"`
 	MetricType                  types.String                                            `tfsdk:"metric_type" autoflex:",omitempty"`
-	OperationName               types.String                                            `tfsdk:"operation_name"`
 	MonitoredRequestCountMetric fwtypes.ObjectValueOf[monitoredRequestCountMetricModel] `tfsdk:"monitored_request_count_metric"`
+	OperationName               types.String                                            `tfsdk:"operation_name"`
+	TotalRequestCountMetric     fwtypes.ListNestedObjectValueOf[metricDataQueryModel]   `tfsdk:"total_request_count_metric"`
 }
 
 type monitoredRequestCountMetricModel struct {
