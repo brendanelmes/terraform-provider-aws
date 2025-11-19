@@ -949,16 +949,16 @@ func (m *monitoredRequestCountMetricModel) Flatten(ctx context.Context, v any) d
 type resourceServiceLevelObjectiveModel struct {
 	framework.WithRegionModel
 	ARN                    types.String                                                `tfsdk:"arn"`
-	CreatedTime            timetypes.RFC3339                                           `tfsdk:"created_time"`
 	BurnRateConfigurations fwtypes.ListNestedObjectValueOf[burnRateConfigurationModel] `tfsdk:"burn_rate_configurations"`
-	LastUpdatedTime        timetypes.RFC3339                                           `tfsdk:"last_updated_time"`
-	Name                   types.String                                                `tfsdk:"name"`
+	CreatedTime            timetypes.RFC3339                                           `tfsdk:"created_time"`
 	Description            types.String                                                `tfsdk:"description"`
-	MetricSourceType       types.String                                                `tfsdk:"metric_source_type"`
 	EvaluationType         types.String                                                `tfsdk:"evaluation_type"`
 	Goal                   fwtypes.ObjectValueOf[goalModel]                            `tfsdk:"goal"`
-	Sli                    fwtypes.ObjectValueOf[sliModel]                             `tfsdk:"sli"`
+	LastUpdatedTime        timetypes.RFC3339                                           `tfsdk:"last_updated_time"`
+	MetricSourceType       types.String                                                `tfsdk:"metric_source_type"`
+	Name                   types.String                                                `tfsdk:"name"`
 	RequestBasedSli        fwtypes.ObjectValueOf[requestBasedSliModel]                 `tfsdk:"request_based_sli"`
+	Sli                    fwtypes.ObjectValueOf[sliModel]                             `tfsdk:"sli"`
 	Timeouts               timeouts.Value                                              `tfsdk:"timeouts"`
 }
 
