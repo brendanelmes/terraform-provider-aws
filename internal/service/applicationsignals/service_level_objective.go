@@ -115,7 +115,9 @@ func (r *resourceServiceLevelObjective) Schema(ctx context.Context, req resource
 								Attributes: map[string]schema.Attribute{
 									"duration":      schema.Int32Attribute{Optional: true},
 									"duration_unit": schema.StringAttribute{Optional: true},
-									"start_time":    schema.StringAttribute{Optional: true},
+									"start_time": schema.StringAttribute{
+										CustomType: timetypes.RFC3339Type{},
+										Optional:   true},
 								},
 							},
 							"rolling_interval": schema.SingleNestedBlock{
@@ -947,9 +949,9 @@ type intervalModel struct {
 }
 
 type calendarIntervalModel struct {
-	Duration     types.Int32  `tfsdk:"duration"`
-	DurationUnit types.String `tfsdk:"duration_unit"`
-	StartTime    types.String `tfsdk:"start_time"`
+	Duration     types.Int32       `tfsdk:"duration"`
+	DurationUnit types.String      `tfsdk:"duration_unit"`
+	StartTime    timetypes.RFC3339 `tfsdk:"start_time"`
 }
 
 type rollingIntervalModel struct {
