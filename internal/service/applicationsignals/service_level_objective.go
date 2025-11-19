@@ -562,7 +562,6 @@ func (m *monitoredRequestCountMetricModel) Flatten(ctx context.Context, v any) d
 		models := make([]metricDataQueryModel, 0, len(t.Value))
 		for _, apiValue := range t.Value {
 			var model metricDataQueryModel
-			// Flatten single API object (MetricDataQuery) into single model
 			diags.Append(flex.Flatten(ctx, apiValue, &model)...)
 			if diags.HasError() {
 				return diags
@@ -632,7 +631,6 @@ func (m requestBasedSliModel) Expand(ctx context.Context) (any, diag.Diagnostics
 func (m *requestBasedSliModel) Flatten(ctx context.Context, v any) diag.Diagnostics {
 	var diags diag.Diagnostics
 
-	// Cast to expected type
 	apiModel, ok := v.(awstypes.RequestBasedServiceLevelIndicator)
 	if !ok {
 		return diag.Diagnostics{
@@ -640,21 +638,18 @@ func (m *requestBasedSliModel) Flatten(ctx context.Context, v any) diag.Diagnost
 		}
 	}
 
-	// Flatten ComparisonOperator
 	if apiModel.ComparisonOperator == "" {
 		m.ComparisonOperator = types.StringNull()
 	} else {
 		m.ComparisonOperator = types.StringValue(string(apiModel.ComparisonOperator))
 	}
 
-	// Flatten MetricThreshold
 	if apiModel.MetricThreshold == nil {
 		m.MetricThreshold = types.Float64Null()
 	} else {
 		m.MetricThreshold = types.Float64Value(*apiModel.MetricThreshold)
 	}
 
-	// Flatten RequestBasedSliMetric (nested block)
 	if apiModel.RequestBasedSliMetric == nil {
 		m.RequestBasedSliMetric = fwtypes.NewObjectValueOfNull[requestBasedSliMetricModel](ctx)
 	} else {
@@ -881,7 +876,7 @@ func (m *resourceServiceLevelObjectiveModel) Flatten(ctx context.Context, v any)
 		m.Goal = fwtypes.NewObjectValueOfMust(ctx, &goalModel)
 	}
 
-	if apiModel.Sli != nil { // Note: API field is SliConfig
+	if apiModel.Sli != nil {
 		var sliModel sliModel
 		diags.Append(flex.Flatten(ctx, *apiModel.Sli, &sliModel)...)
 		if !diags.HasError() {
@@ -891,7 +886,7 @@ func (m *resourceServiceLevelObjectiveModel) Flatten(ctx context.Context, v any)
 		m.Sli = fwtypes.NewObjectValueOfNull[sliModel](ctx)
 	}
 
-	if apiModel.RequestBasedSli != nil { // Note: API field is RequestBasedSliConfig
+	if apiModel.RequestBasedSli != nil {
 		var reqSliModel requestBasedSliModel
 		diags.Append(flex.Flatten(ctx, *apiModel.RequestBasedSli, &reqSliModel)...)
 		if !diags.HasError() {
