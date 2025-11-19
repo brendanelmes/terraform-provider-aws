@@ -116,9 +116,8 @@ func (r *resourceServiceLevelObjective) Schema(ctx context.Context, req resource
 								CustomType: fwtypes.NewObjectTypeOf[calendarIntervalModel](ctx),
 								Validators: []validator.Object{
 									objectvalidator.ExactlyOneOf(
-										path.Expressions{
-											path.MatchRelative().AtParent().AtName("rolling_interval"),
-										}...),
+										path.MatchRelative().AtParent().AtName("rolling_interval"),
+									),
 								},
 								Attributes: map[string]schema.Attribute{
 									"duration":      schema.Int32Attribute{Optional: true},
@@ -132,9 +131,8 @@ func (r *resourceServiceLevelObjective) Schema(ctx context.Context, req resource
 								CustomType: fwtypes.NewObjectTypeOf[rollingIntervalModel](ctx),
 								Validators: []validator.Object{
 									objectvalidator.ExactlyOneOf(
-										path.Expressions{
-											path.MatchRelative().AtParent().AtName("calendar_interval"),
-										}...),
+										path.MatchRelative().AtParent().AtName("calendar_interval"),
+									),
 								},
 								Attributes: map[string]schema.Attribute{
 									"duration":      schema.Int32Attribute{Optional: true},
@@ -185,9 +183,8 @@ func (r *resourceServiceLevelObjective) Schema(ctx context.Context, req resource
 				CustomType: fwtypes.NewObjectTypeOf[sliModel](ctx),
 				Validators: []validator.Object{
 					objectvalidator.ExactlyOneOf(
-						path.Expressions{
-							path.MatchRelative().AtParent().AtName("request_based_sli"),
-						}...),
+						path.MatchRelative().AtParent().AtName("request_based_sli"),
+					),
 				},
 				Attributes: map[string]schema.Attribute{
 					"metric_threshold":    schema.Float64Attribute{Optional: true},
@@ -197,7 +194,11 @@ func (r *resourceServiceLevelObjective) Schema(ctx context.Context, req resource
 					"sli_metric": schema.SingleNestedBlock{
 						CustomType: fwtypes.NewObjectTypeOf[sliMetricModel](ctx),
 						Attributes: map[string]schema.Attribute{
-							"key_attributes": schema.MapAttribute{CustomType: fwtypes.MapOfStringType, ElementType: types.StringType, Optional: true},
+							"key_attributes": schema.MapAttribute{
+								CustomType:  fwtypes.MapOfStringType,
+								ElementType: types.StringType,
+								Optional:    true,
+							},
 							"metric_type":    schema.StringAttribute{Optional: true},
 							"metric_name":    schema.StringAttribute{Optional: true},
 							"operation_name": schema.StringAttribute{Optional: true},
@@ -205,10 +206,18 @@ func (r *resourceServiceLevelObjective) Schema(ctx context.Context, req resource
 							"statistic":      schema.StringAttribute{Optional: true},
 						},
 						Blocks: map[string]schema.Block{
-							"metric_data_queries": metricDataQueriesBlock(ctx),
 							"dependency_config": schema.SingleNestedBlock{
 								CustomType: fwtypes.NewObjectTypeOf[dependencyConfigModel](ctx),
+								Attributes: map[string]schema.Attribute{
+									"dependency_key_attributes": schema.MapAttribute{
+										CustomType:  fwtypes.MapOfStringType,
+										ElementType: types.StringType,
+										Optional:    true,
+									},
+									"dependency_operation_name": schema.StringAttribute{Optional: true},
+								},
 							},
+							"metric_data_queries": metricDataQueriesBlock(ctx),
 						},
 					},
 				},
@@ -898,15 +907,12 @@ func (m monitoredRequestCountMetricModel) Expand(ctx context.Context) (any, diag
 func (m *monitoredRequestCountMetricModel) Flatten(ctx context.Context, v any) diag.Diagnostics {
 	var diags diag.Diagnostics
 
-	// Initialize to Null, as before
 	m.GoodCountMetric = fwtypes.NewListNestedObjectValueOfNull[metricDataQueryModel](ctx)
 	m.BadCountMetric = fwtypes.NewListNestedObjectValueOfNull[metricDataQueryModel](ctx)
 
 	switch t := v.(type) {
 	case awstypes.MonitoredRequestCountMetricDataQueriesMemberGoodCountMetric:
 
-		// 1. Core Fix: Manual iteration is still required because t.Value is a slice (list)
-		// and you need to flatten each element into the model type.
 		models := make([]metricDataQueryModel, 0, len(t.Value))
 		for _, apiValue := range t.Value {
 			var model metricDataQueryModel
@@ -918,7 +924,6 @@ func (m *monitoredRequestCountMetricModel) Flatten(ctx context.Context, v any) d
 			models = append(models, model)
 		}
 
-		// 2. ⭐ THE ULTIMATE FIX: Use the specific factory function discovered.
 		listValue, listDiags := fwtypes.NewListNestedObjectValueOfValueSlice(ctx, models)
 		diags.Append(listDiags...)
 
@@ -936,7 +941,6 @@ func (m *monitoredRequestCountMetricModel) Flatten(ctx context.Context, v any) d
 			models = append(models, model)
 		}
 
-		// 2. ⭐ THE ULTIMATE FIX: Use the specific factory function discovered.
 		listValue, listDiags := fwtypes.NewListNestedObjectValueOfValueSlice(ctx, models)
 		diags.Append(listDiags...)
 
@@ -962,10 +966,14 @@ type resourceServiceLevelObjectiveModel struct {
 	Timeouts               timeouts.Value                                              `tfsdk:"timeouts"`
 }
 
+type burnRateConfigurationModel struct {
+	LookBackWindowMinutes types.Int32 `tfsdk:"look_back_window_minutes"`
+}
+
 type goalModel struct {
 	AttainmentGoal   types.Float64                        `tfsdk:"attainment_goal"`
-	WarningThreshold types.Float64                        `tfsdk:"warning_threshold"`
 	Interval         fwtypes.ObjectValueOf[intervalModel] `tfsdk:"interval"`
+	WarningThreshold types.Float64                        `tfsdk:"warning_threshold"`
 }
 
 type intervalModel struct {
@@ -984,20 +992,10 @@ type rollingIntervalModel struct {
 	DurationUnit types.String `tfsdk:"duration_unit"`
 }
 
-type sliModel struct {
-	ComparisonOperator types.String                          `tfsdk:"comparison_operator"`
-	MetricThreshold    types.Float64                         `tfsdk:"metric_threshold"`
-	SliMetric          fwtypes.ObjectValueOf[sliMetricModel] `tfsdk:"sli_metric"`
-}
-
 type requestBasedSliModel struct {
 	RequestBasedSliMetric fwtypes.ObjectValueOf[requestBasedSliMetricModel] `tfsdk:"request_based_sli_metric"`
 	ComparisonOperator    types.String                                      `tfsdk:"comparison_operator"`
 	MetricThreshold       types.Float64                                     `tfsdk:"metric_threshold"`
-}
-
-type burnRateConfigurationModel struct {
-	LookBackWindowMinutes types.Int32 `tfsdk:"look_back_window_minutes"`
 }
 
 type requestBasedSliMetricModel struct {
@@ -1009,20 +1007,26 @@ type requestBasedSliMetricModel struct {
 	MonitoredRequestCountMetric fwtypes.ObjectValueOf[monitoredRequestCountMetricModel] `tfsdk:"monitored_request_count_metric"`
 }
 
-type monitoredRequestCountMetricModel struct {
-	GoodCountMetric fwtypes.ListNestedObjectValueOf[metricDataQueryModel] `tfsdk:"good_count_metric"`
-	BadCountMetric  fwtypes.ListNestedObjectValueOf[metricDataQueryModel] `tfsdk:"bad_count_metric"`
+type sliModel struct {
+	ComparisonOperator types.String                          `tfsdk:"comparison_operator"`
+	MetricThreshold    types.Float64                         `tfsdk:"metric_threshold"`
+	SliMetric          fwtypes.ObjectValueOf[sliMetricModel] `tfsdk:"sli_metric"`
 }
 
 type sliMetricModel struct {
-	MetricDataQueries fwtypes.ListNestedObjectValueOf[metricDataQueryModel] `tfsdk:"metric_data_queries"`
 	DependencyConfig  fwtypes.ObjectValueOf[dependencyConfigModel]          `tfsdk:"dependency_config"`
 	KeyAttributes     fwtypes.MapOfString                                   `tfsdk:"key_attributes"`
+	MetricDataQueries fwtypes.ListNestedObjectValueOf[metricDataQueryModel] `tfsdk:"metric_data_queries"`
 	MetricName        types.String                                          `tfsdk:"metric_name"`
 	MetricType        types.String                                          `tfsdk:"metric_type"`
 	OperationName     types.String                                          `tfsdk:"operation_name"`
 	PeriodSeconds     types.Int32                                           `tfsdk:"period_seconds"`
 	Statistic         types.String                                          `tfsdk:"statistic"`
+}
+
+type dependencyConfigModel struct {
+	DependencyKeyAttributes fwtypes.MapOfString `tfsdk:"dependency_key_attributes"`
+	DependencyOperationName types.String        `tfsdk:"dependency_operation_name"`
 }
 
 type metricDataQueryModel struct {
@@ -1042,6 +1046,10 @@ type metricStatModel struct {
 	Unit   types.String                       `tfsdk:"unit" autoflex:",omitempty"`
 }
 
+type monitoredRequestCountMetricModel struct {
+	GoodCountMetric fwtypes.ListNestedObjectValueOf[metricDataQueryModel] `tfsdk:"good_count_metric"`
+	BadCountMetric  fwtypes.ListNestedObjectValueOf[metricDataQueryModel] `tfsdk:"bad_count_metric"`
+}
 type metricModel struct {
 	Dimensions fwtypes.ListNestedObjectValueOf[dimensionModel] `tfsdk:"dimensions"`
 	MetricName types.String                                    `tfsdk:"metric_name"`
@@ -1051,11 +1059,6 @@ type metricModel struct {
 type dimensionModel struct {
 	Name  types.String `tfsdk:"name"`
 	Value types.String `tfsdk:"value"`
-}
-
-type dependencyConfigModel struct {
-	DependencyKeyAttributes types.String `tfsdk:"dependency_key_attributes"`
-	DependencyOperationName types.String `tfsdk:"dependency_operation_name"`
 }
 
 func sweepServiceLevelObjectives(ctx context.Context, client *conns.AWSClient) ([]sweep.Sweepable, error) {
