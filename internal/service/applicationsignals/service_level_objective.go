@@ -438,118 +438,64 @@ func findServiceLevelObjectiveByID(ctx context.Context, conn *applicationsignals
 	return out.Slo, nil
 }
 
+func stringPtr(v types.String) *string {
+	if v.IsNull() || v.IsUnknown() {
+		return nil
+	}
+	val := v.ValueString()
+	return &val
+}
+
 var (
-	_ flex.Flattener = &intervalModel{}
 	_ flex.Expander  = intervalModel{}
+	_ flex.Flattener = &intervalModel{}
 
-	_ flex.Flattener = &requestBasedSliModel{}
-	_ flex.Expander  = requestBasedSliModel{}
-
-	_ flex.Flattener = &monitoredRequestCountMetricModel{}
 	_ flex.Expander  = monitoredRequestCountMetricModel{}
+	_ flex.Flattener = &monitoredRequestCountMetricModel{}
 
-	_ flex.Flattener = &resourceServiceLevelObjectiveModel{}
+	_ flex.Expander  = requestBasedSliModel{}
+	_ flex.Flattener = &requestBasedSliModel{}
+
+	_ flex.TypedExpander = resourceServiceLevelObjectiveModel{}
+	_ flex.Flattener     = &resourceServiceLevelObjectiveModel{}
+
+	_ flex.Expander = sliModel{}
 )
 
-func (m *resourceServiceLevelObjectiveModel) Flatten(ctx context.Context, v any) diag.Diagnostics {
-	var diags diag.Diagnostics
-	var apiModel *awstypes.ServiceLevelObjective
-
-	if ptr, ok := v.(*awstypes.ServiceLevelObjective); ok {
-		apiModel = ptr
-	} else if val, ok := v.(awstypes.ServiceLevelObjective); ok {
-		apiModel = &val
-	} else {
-		diags.AddError("Flatten Error", fmt.Sprintf("Invalid type: expected *ServiceLevelObjective or ServiceLevelObjective, got %T", v))
-		return diags
-	}
-
-	if apiModel.CreatedTime != nil {
-		m.CreatedTime = timetypes.NewRFC3339ValueMust(apiModel.CreatedTime.Format(time.RFC3339))
-	} else {
-		m.CreatedTime = timetypes.NewRFC3339Null()
-	}
-
-	if apiModel.LastUpdatedTime != nil {
-		m.LastUpdatedTime = timetypes.NewRFC3339ValueMust(apiModel.LastUpdatedTime.Format(time.RFC3339))
-	} else {
-		m.LastUpdatedTime = timetypes.NewRFC3339Null()
-	}
-
-	if apiModel.Arn != nil {
-		m.ARN = types.StringValue(*apiModel.Arn)
-	} else {
-		m.ARN = types.StringNull()
-	}
-	if apiModel.Name != nil {
-		m.Name = types.StringValue(*apiModel.Name)
-	} else {
-		m.Name = types.StringNull()
-	}
-	if apiModel.Description != nil {
-		m.Description = types.StringValue(*apiModel.Description)
-	} else {
-		m.Description = types.StringNull()
-	}
-	if apiModel.EvaluationType != "" {
-		m.EvaluationType = types.StringValue(string(apiModel.EvaluationType))
-	} else {
-		m.EvaluationType = types.StringNull()
-	}
-	if apiModel.MetricSourceType != "" {
-		m.MetricSourceType = types.StringValue(string(apiModel.MetricSourceType))
-	} else {
-		m.MetricSourceType = types.StringNull()
-	}
-
-	if apiModel.Goal != nil {
-		var goalModel goalModel
-		diags.Append(flex.Flatten(ctx, *apiModel.Goal, &goalModel)...)
-		m.Goal = fwtypes.NewObjectValueOfMust(ctx, &goalModel)
-	}
-
-	if apiModel.Sli != nil { // Note: API field is SliConfig
-		var sliModel sliModel
-		diags.Append(flex.Flatten(ctx, *apiModel.Sli, &sliModel)...)
-		if !diags.HasError() {
-			m.Sli = fwtypes.NewObjectValueOfMust(ctx, &sliModel)
-		}
-	} else {
-		m.Sli = fwtypes.NewObjectValueOfNull[sliModel](ctx)
-	}
-
-	if apiModel.RequestBasedSli != nil { // Note: API field is RequestBasedSliConfig
-		var reqSliModel requestBasedSliModel
-		diags.Append(flex.Flatten(ctx, *apiModel.RequestBasedSli, &reqSliModel)...)
-		if !diags.HasError() {
-			m.RequestBasedSli = fwtypes.NewObjectValueOfMust(ctx, &reqSliModel)
-		}
-	} else {
-		m.RequestBasedSli = fwtypes.NewObjectValueOfNull[requestBasedSliModel](ctx)
-	}
-
-	if apiModel.BurnRateConfigurations != nil {
-
-		models := make([]burnRateConfigurationModel, 0, len(apiModel.BurnRateConfigurations))
-
-		for _, apiValue := range apiModel.BurnRateConfigurations {
-			var model burnRateConfigurationModel
-			diags.Append(flex.Flatten(ctx, apiValue, &model)...)
-			if diags.HasError() {
-				return diags
-			}
-			models = append(models, model)
+func (m intervalModel) Expand(ctx context.Context) (result any, diags diag.Diagnostics) {
+	switch {
+	case !m.RollingInterval.IsNull():
+		rollingData, d := m.RollingInterval.ToPtr(ctx)
+		diags.Append(d...)
+		if diags.HasError() {
+			return nil, diags
 		}
 
-		listValue, listDiags := fwtypes.NewListNestedObjectValueOfValueSlice(ctx, models)
-		diags.Append(listDiags...)
+		var r awstypes.IntervalMemberRollingInterval
+		diags.Append(flex.Expand(ctx, rollingData, &r.Value)...)
+		if diags.HasError() {
+			return nil, diags
+		}
 
-		m.BurnRateConfigurations = listValue
-	} else {
-		m.BurnRateConfigurations = fwtypes.NewListNestedObjectValueOfNull[burnRateConfigurationModel](ctx)
+		return &r, diags
+
+	case !m.CalendarInterval.IsNull():
+		calendarData, d := m.CalendarInterval.ToPtr(ctx)
+		diags.Append(d...)
+		if diags.HasError() {
+			return nil, diags
+		}
+
+		var r awstypes.IntervalMemberCalendarInterval
+		diags.Append(flex.Expand(ctx, calendarData, &r.Value)...)
+		if diags.HasError() {
+			return nil, diags
+		}
+
+		return &r, diags
 	}
 
-	return diags
+	return nil, diags
 }
 
 func (m *intervalModel) Flatten(ctx context.Context, v any) diag.Diagnostics {
@@ -578,12 +524,149 @@ func (m *intervalModel) Flatten(ctx context.Context, v any) diag.Diagnostics {
 	return diags
 }
 
-func stringPtr(v types.String) *string {
-	if v.IsNull() || v.IsUnknown() {
-		return nil
+func (m monitoredRequestCountMetricModel) Expand(ctx context.Context) (any, diag.Diagnostics) {
+	var diags diag.Diagnostics
+
+	if !m.GoodCountMetric.IsNull() && !m.GoodCountMetric.IsUnknown() {
+		var r awstypes.MonitoredRequestCountMetricDataQueriesMemberGoodCountMetric
+		diags.Append(flex.Expand(ctx, m.GoodCountMetric, &r.Value)...)
+		if diags.HasError() {
+			return nil, diags
+		}
+
+		return &r, diags
 	}
-	val := v.ValueString()
-	return &val
+
+	if !m.BadCountMetric.IsNull() && !m.BadCountMetric.IsUnknown() {
+		var r awstypes.MonitoredRequestCountMetricDataQueriesMemberBadCountMetric
+		diags.Append(flex.Expand(ctx, m.BadCountMetric, &r.Value)...)
+		if diags.HasError() {
+			return nil, diags
+		}
+
+		return &r, diags
+	}
+
+	return nil, diags
+}
+
+func (m *monitoredRequestCountMetricModel) Flatten(ctx context.Context, v any) diag.Diagnostics {
+	var diags diag.Diagnostics
+
+	m.GoodCountMetric = fwtypes.NewListNestedObjectValueOfNull[metricDataQueryModel](ctx)
+	m.BadCountMetric = fwtypes.NewListNestedObjectValueOfNull[metricDataQueryModel](ctx)
+
+	switch t := v.(type) {
+	case awstypes.MonitoredRequestCountMetricDataQueriesMemberGoodCountMetric:
+
+		models := make([]metricDataQueryModel, 0, len(t.Value))
+		for _, apiValue := range t.Value {
+			var model metricDataQueryModel
+			// Flatten single API object (MetricDataQuery) into single model
+			diags.Append(flex.Flatten(ctx, apiValue, &model)...)
+			if diags.HasError() {
+				return diags
+			}
+			models = append(models, model)
+		}
+
+		listValue, listDiags := fwtypes.NewListNestedObjectValueOfValueSlice(ctx, models)
+		diags.Append(listDiags...)
+
+		m.GoodCountMetric = listValue
+
+	case awstypes.MonitoredRequestCountMetricDataQueriesMemberBadCountMetric:
+
+		models := make([]metricDataQueryModel, 0, len(t.Value))
+		for _, apiValue := range t.Value {
+			var model metricDataQueryModel
+			diags.Append(flex.Flatten(ctx, apiValue, &model)...)
+			if diags.HasError() {
+				return diags
+			}
+			models = append(models, model)
+		}
+
+		listValue, listDiags := fwtypes.NewListNestedObjectValueOfValueSlice(ctx, models)
+		diags.Append(listDiags...)
+
+		m.BadCountMetric = listValue
+	}
+
+	return diags
+}
+
+func (m requestBasedSliModel) Expand(ctx context.Context) (any, diag.Diagnostics) {
+	var diags diag.Diagnostics
+
+	var config awstypes.RequestBasedServiceLevelIndicatorConfig
+
+	if !m.ComparisonOperator.IsNull() {
+		config.ComparisonOperator = awstypes.ServiceLevelIndicatorComparisonOperator(m.ComparisonOperator.ValueString())
+	}
+
+	if !m.MetricThreshold.IsNull() {
+		val := m.MetricThreshold.ValueFloat64()
+		config.MetricThreshold = &val
+	}
+
+	if !m.RequestBasedSliMetric.IsNull() {
+		sliMetricData, d := m.RequestBasedSliMetric.ToPtr(ctx)
+		diags.Append(d...)
+		if diags.HasError() {
+			return nil, diags
+		}
+
+		var metric awstypes.RequestBasedServiceLevelIndicatorMetricConfig
+		diags.Append(flex.Expand(ctx, sliMetricData, &metric)...)
+		if diags.HasError() {
+			return nil, diags
+		}
+
+		config.RequestBasedSliMetricConfig = &metric
+	}
+
+	return &config, diags
+}
+
+func (m *requestBasedSliModel) Flatten(ctx context.Context, v any) diag.Diagnostics {
+	var diags diag.Diagnostics
+
+	// Cast to expected type
+	apiModel, ok := v.(awstypes.RequestBasedServiceLevelIndicator)
+	if !ok {
+		return diag.Diagnostics{
+			diag.NewErrorDiagnostic("Flatten Error", "Invalid type passed to Flatten for requestBasedSliModel"),
+		}
+	}
+
+	// Flatten ComparisonOperator
+	if apiModel.ComparisonOperator == "" {
+		m.ComparisonOperator = types.StringNull()
+	} else {
+		m.ComparisonOperator = types.StringValue(string(apiModel.ComparisonOperator))
+	}
+
+	// Flatten MetricThreshold
+	if apiModel.MetricThreshold == nil {
+		m.MetricThreshold = types.Float64Null()
+	} else {
+		m.MetricThreshold = types.Float64Value(*apiModel.MetricThreshold)
+	}
+
+	// Flatten RequestBasedSliMetric (nested block)
+	if apiModel.RequestBasedSliMetric == nil {
+		m.RequestBasedSliMetric = fwtypes.NewObjectValueOfNull[requestBasedSliMetricModel](ctx)
+	} else {
+		var nestedModel requestBasedSliMetricModel
+		innerDiags := flex.Flatten(ctx, apiModel.RequestBasedSliMetric, &nestedModel)
+		diags.Append(innerDiags...)
+		if !innerDiags.HasError() {
+			m.RequestBasedSliMetric = fwtypes.NewObjectValueOfMust(ctx, &nestedModel)
+		}
+	}
+
+	return diags
 }
 
 func (m resourceServiceLevelObjectiveModel) ExpandTo(ctx context.Context, targetType reflect.Type) (result any, diags diag.Diagnostics) {
@@ -741,6 +824,107 @@ func (m resourceServiceLevelObjectiveModel) expandToCreateServiceLevelObjectiveI
 	return input, diags
 }
 
+func (m *resourceServiceLevelObjectiveModel) Flatten(ctx context.Context, v any) diag.Diagnostics {
+	var diags diag.Diagnostics
+	var apiModel *awstypes.ServiceLevelObjective
+
+	if ptr, ok := v.(*awstypes.ServiceLevelObjective); ok {
+		apiModel = ptr
+	} else if val, ok := v.(awstypes.ServiceLevelObjective); ok {
+		apiModel = &val
+	} else {
+		diags.AddError("Flatten Error", fmt.Sprintf("Invalid type: expected *ServiceLevelObjective or ServiceLevelObjective, got %T", v))
+		return diags
+	}
+
+	if apiModel.CreatedTime != nil {
+		m.CreatedTime = timetypes.NewRFC3339ValueMust(apiModel.CreatedTime.Format(time.RFC3339))
+	} else {
+		m.CreatedTime = timetypes.NewRFC3339Null()
+	}
+
+	if apiModel.LastUpdatedTime != nil {
+		m.LastUpdatedTime = timetypes.NewRFC3339ValueMust(apiModel.LastUpdatedTime.Format(time.RFC3339))
+	} else {
+		m.LastUpdatedTime = timetypes.NewRFC3339Null()
+	}
+
+	if apiModel.Arn != nil {
+		m.ARN = types.StringValue(*apiModel.Arn)
+	} else {
+		m.ARN = types.StringNull()
+	}
+	if apiModel.Name != nil {
+		m.Name = types.StringValue(*apiModel.Name)
+	} else {
+		m.Name = types.StringNull()
+	}
+	if apiModel.Description != nil {
+		m.Description = types.StringValue(*apiModel.Description)
+	} else {
+		m.Description = types.StringNull()
+	}
+	if apiModel.EvaluationType != "" {
+		m.EvaluationType = types.StringValue(string(apiModel.EvaluationType))
+	} else {
+		m.EvaluationType = types.StringNull()
+	}
+	if apiModel.MetricSourceType != "" {
+		m.MetricSourceType = types.StringValue(string(apiModel.MetricSourceType))
+	} else {
+		m.MetricSourceType = types.StringNull()
+	}
+
+	if apiModel.Goal != nil {
+		var goalModel goalModel
+		diags.Append(flex.Flatten(ctx, *apiModel.Goal, &goalModel)...)
+		m.Goal = fwtypes.NewObjectValueOfMust(ctx, &goalModel)
+	}
+
+	if apiModel.Sli != nil { // Note: API field is SliConfig
+		var sliModel sliModel
+		diags.Append(flex.Flatten(ctx, *apiModel.Sli, &sliModel)...)
+		if !diags.HasError() {
+			m.Sli = fwtypes.NewObjectValueOfMust(ctx, &sliModel)
+		}
+	} else {
+		m.Sli = fwtypes.NewObjectValueOfNull[sliModel](ctx)
+	}
+
+	if apiModel.RequestBasedSli != nil { // Note: API field is RequestBasedSliConfig
+		var reqSliModel requestBasedSliModel
+		diags.Append(flex.Flatten(ctx, *apiModel.RequestBasedSli, &reqSliModel)...)
+		if !diags.HasError() {
+			m.RequestBasedSli = fwtypes.NewObjectValueOfMust(ctx, &reqSliModel)
+		}
+	} else {
+		m.RequestBasedSli = fwtypes.NewObjectValueOfNull[requestBasedSliModel](ctx)
+	}
+
+	if apiModel.BurnRateConfigurations != nil {
+
+		models := make([]burnRateConfigurationModel, 0, len(apiModel.BurnRateConfigurations))
+
+		for _, apiValue := range apiModel.BurnRateConfigurations {
+			var model burnRateConfigurationModel
+			diags.Append(flex.Flatten(ctx, apiValue, &model)...)
+			if diags.HasError() {
+				return diags
+			}
+			models = append(models, model)
+		}
+
+		listValue, listDiags := fwtypes.NewListNestedObjectValueOfValueSlice(ctx, models)
+		diags.Append(listDiags...)
+
+		m.BurnRateConfigurations = listValue
+	} else {
+		m.BurnRateConfigurations = fwtypes.NewListNestedObjectValueOfNull[burnRateConfigurationModel](ctx)
+	}
+
+	return diags
+}
+
 func (m sliModel) Expand(ctx context.Context) (any, diag.Diagnostics) {
 	var diags diag.Diagnostics
 
@@ -772,187 +956,6 @@ func (m sliModel) Expand(ctx context.Context) (any, diag.Diagnostics) {
 	}
 
 	return &config, diags
-}
-
-func (m requestBasedSliModel) Expand(ctx context.Context) (any, diag.Diagnostics) {
-	var diags diag.Diagnostics
-
-	var config awstypes.RequestBasedServiceLevelIndicatorConfig
-
-	if !m.ComparisonOperator.IsNull() {
-		config.ComparisonOperator = awstypes.ServiceLevelIndicatorComparisonOperator(m.ComparisonOperator.ValueString())
-	}
-
-	if !m.MetricThreshold.IsNull() {
-		val := m.MetricThreshold.ValueFloat64()
-		config.MetricThreshold = &val
-	}
-
-	if !m.RequestBasedSliMetric.IsNull() {
-		sliMetricData, d := m.RequestBasedSliMetric.ToPtr(ctx)
-		diags.Append(d...)
-		if diags.HasError() {
-			return nil, diags
-		}
-
-		var metric awstypes.RequestBasedServiceLevelIndicatorMetricConfig
-		diags.Append(flex.Expand(ctx, sliMetricData, &metric)...)
-		if diags.HasError() {
-			return nil, diags
-		}
-
-		config.RequestBasedSliMetricConfig = &metric
-	}
-
-	return &config, diags
-}
-
-func (m *requestBasedSliModel) Flatten(ctx context.Context, v any) diag.Diagnostics {
-	var diags diag.Diagnostics
-
-	// Cast to expected type
-	apiModel, ok := v.(awstypes.RequestBasedServiceLevelIndicator)
-	if !ok {
-		return diag.Diagnostics{
-			diag.NewErrorDiagnostic("Flatten Error", "Invalid type passed to Flatten for requestBasedSliModel"),
-		}
-	}
-
-	// Flatten ComparisonOperator
-	if apiModel.ComparisonOperator == "" {
-		m.ComparisonOperator = types.StringNull()
-	} else {
-		m.ComparisonOperator = types.StringValue(string(apiModel.ComparisonOperator))
-	}
-
-	// Flatten MetricThreshold
-	if apiModel.MetricThreshold == nil {
-		m.MetricThreshold = types.Float64Null()
-	} else {
-		m.MetricThreshold = types.Float64Value(*apiModel.MetricThreshold)
-	}
-
-	// Flatten RequestBasedSliMetric (nested block)
-	if apiModel.RequestBasedSliMetric == nil {
-		m.RequestBasedSliMetric = fwtypes.NewObjectValueOfNull[requestBasedSliMetricModel](ctx)
-	} else {
-		var nestedModel requestBasedSliMetricModel
-		innerDiags := flex.Flatten(ctx, apiModel.RequestBasedSliMetric, &nestedModel)
-		diags.Append(innerDiags...)
-		if !innerDiags.HasError() {
-			m.RequestBasedSliMetric = fwtypes.NewObjectValueOfMust(ctx, &nestedModel)
-		}
-	}
-
-	return diags
-}
-
-func (m intervalModel) Expand(ctx context.Context) (result any, diags diag.Diagnostics) {
-	switch {
-	case !m.RollingInterval.IsNull():
-		rollingData, d := m.RollingInterval.ToPtr(ctx)
-		diags.Append(d...)
-		if diags.HasError() {
-			return nil, diags
-		}
-
-		var r awstypes.IntervalMemberRollingInterval
-		diags.Append(flex.Expand(ctx, rollingData, &r.Value)...)
-		if diags.HasError() {
-			return nil, diags
-		}
-
-		return &r, diags
-
-	case !m.CalendarInterval.IsNull():
-		calendarData, d := m.CalendarInterval.ToPtr(ctx)
-		diags.Append(d...)
-		if diags.HasError() {
-			return nil, diags
-		}
-
-		var r awstypes.IntervalMemberCalendarInterval
-		diags.Append(flex.Expand(ctx, calendarData, &r.Value)...)
-		if diags.HasError() {
-			return nil, diags
-		}
-
-		return &r, diags
-	}
-
-	return nil, diags
-}
-
-func (m monitoredRequestCountMetricModel) Expand(ctx context.Context) (any, diag.Diagnostics) {
-	var diags diag.Diagnostics
-
-	if !m.GoodCountMetric.IsNull() && !m.GoodCountMetric.IsUnknown() {
-		var r awstypes.MonitoredRequestCountMetricDataQueriesMemberGoodCountMetric
-		diags.Append(flex.Expand(ctx, m.GoodCountMetric, &r.Value)...)
-		if diags.HasError() {
-			return nil, diags
-		}
-
-		return &r, diags
-	}
-
-	if !m.BadCountMetric.IsNull() && !m.BadCountMetric.IsUnknown() {
-		var r awstypes.MonitoredRequestCountMetricDataQueriesMemberBadCountMetric
-		diags.Append(flex.Expand(ctx, m.BadCountMetric, &r.Value)...)
-		if diags.HasError() {
-			return nil, diags
-		}
-
-		return &r, diags
-	}
-
-	return nil, diags
-}
-
-func (m *monitoredRequestCountMetricModel) Flatten(ctx context.Context, v any) diag.Diagnostics {
-	var diags diag.Diagnostics
-
-	m.GoodCountMetric = fwtypes.NewListNestedObjectValueOfNull[metricDataQueryModel](ctx)
-	m.BadCountMetric = fwtypes.NewListNestedObjectValueOfNull[metricDataQueryModel](ctx)
-
-	switch t := v.(type) {
-	case awstypes.MonitoredRequestCountMetricDataQueriesMemberGoodCountMetric:
-
-		models := make([]metricDataQueryModel, 0, len(t.Value))
-		for _, apiValue := range t.Value {
-			var model metricDataQueryModel
-			// Flatten single API object (MetricDataQuery) into single model
-			diags.Append(flex.Flatten(ctx, apiValue, &model)...)
-			if diags.HasError() {
-				return diags
-			}
-			models = append(models, model)
-		}
-
-		listValue, listDiags := fwtypes.NewListNestedObjectValueOfValueSlice(ctx, models)
-		diags.Append(listDiags...)
-
-		m.GoodCountMetric = listValue
-
-	case awstypes.MonitoredRequestCountMetricDataQueriesMemberBadCountMetric:
-
-		models := make([]metricDataQueryModel, 0, len(t.Value))
-		for _, apiValue := range t.Value {
-			var model metricDataQueryModel
-			diags.Append(flex.Flatten(ctx, apiValue, &model)...)
-			if diags.HasError() {
-				return diags
-			}
-			models = append(models, model)
-		}
-
-		listValue, listDiags := fwtypes.NewListNestedObjectValueOfValueSlice(ctx, models)
-		diags.Append(listDiags...)
-
-		m.BadCountMetric = listValue
-	}
-
-	return diags
 }
 
 type resourceServiceLevelObjectiveModel struct {
