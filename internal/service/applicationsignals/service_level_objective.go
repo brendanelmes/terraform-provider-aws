@@ -236,9 +236,9 @@ func metricDataQueriesBlock(ctx context.Context) schema.ListNestedBlock {
 		CustomType: fwtypes.NewListNestedObjectTypeOf[metricDataQueryModel](ctx),
 		NestedObject: schema.NestedBlockObject{
 			Attributes: map[string]schema.Attribute{
-				"id":          schema.StringAttribute{Optional: true},
 				"account_id":  schema.StringAttribute{Optional: true},
 				"expression":  schema.StringAttribute{Optional: true},
+				"id":          schema.StringAttribute{Optional: true},
 				"label":       schema.StringAttribute{Optional: true},
 				"period":      schema.Int32Attribute{Optional: true},
 				"return_data": schema.BoolAttribute{Optional: true},
@@ -1007,6 +1007,11 @@ type requestBasedSliMetricModel struct {
 	MonitoredRequestCountMetric fwtypes.ObjectValueOf[monitoredRequestCountMetricModel] `tfsdk:"monitored_request_count_metric"`
 }
 
+type monitoredRequestCountMetricModel struct {
+	GoodCountMetric fwtypes.ListNestedObjectValueOf[metricDataQueryModel] `tfsdk:"good_count_metric"`
+	BadCountMetric  fwtypes.ListNestedObjectValueOf[metricDataQueryModel] `tfsdk:"bad_count_metric"`
+}
+
 type sliModel struct {
 	ComparisonOperator types.String                          `tfsdk:"comparison_operator"`
 	MetricThreshold    types.Float64                         `tfsdk:"metric_threshold"`
@@ -1030,9 +1035,9 @@ type dependencyConfigModel struct {
 }
 
 type metricDataQueryModel struct {
-	Id         types.String                           `tfsdk:"id"`
 	AccountId  types.String                           `tfsdk:"account_id"`
 	Expression types.String                           `tfsdk:"expression"`
+	Id         types.String                           `tfsdk:"id"`
 	Label      types.String                           `tfsdk:"label"`
 	MetricStat fwtypes.ObjectValueOf[metricStatModel] `tfsdk:"metric_stat"`
 	Period     types.Int32                            `tfsdk:"period"`
@@ -1046,10 +1051,6 @@ type metricStatModel struct {
 	Unit   types.String                       `tfsdk:"unit" autoflex:",omitempty"`
 }
 
-type monitoredRequestCountMetricModel struct {
-	GoodCountMetric fwtypes.ListNestedObjectValueOf[metricDataQueryModel] `tfsdk:"good_count_metric"`
-	BadCountMetric  fwtypes.ListNestedObjectValueOf[metricDataQueryModel] `tfsdk:"bad_count_metric"`
-}
 type metricModel struct {
 	Dimensions fwtypes.ListNestedObjectValueOf[dimensionModel] `tfsdk:"dimensions"`
 	MetricName types.String                                    `tfsdk:"metric_name"`
