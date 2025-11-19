@@ -216,6 +216,48 @@ func TestAccApplicationSignalsServiceLevelObjective_update(t *testing.T) {
 
 }
 
+func TestAccApplicationSignalsServiceLevelObjective_full(t *testing.T) {
+	ctx := acctest.Context(t)
+
+	if testing.Short() {
+		t.Skip("skipping long-running test in short mode")
+	}
+
+	var servicelevelobjective awstypes.ServiceLevelObjective
+	rName := sdkacctest.RandomWithPrefix(acctest.ResourcePrefix)
+	resourceName := "aws_applicationsignals_service_level_objective.test"
+
+	resource.ParallelTest(t, resource.TestCase{
+		PreCheck: func() {
+			acctest.PreCheck(ctx, t)
+			// TODO - work out why this precheck fails even though sdk can create SLOs...
+			//acctest.PreCheckPartitionHasService(t, names.ApplicationSignalsServiceID)
+			testAccPreCheck(ctx, t)
+		},
+		ErrorCheck:               acctest.ErrorCheck(t, names.ApplicationSignalsServiceID),
+		ProtoV5ProviderFactories: acctest.ProtoV5ProviderFactories,
+		CheckDestroy:             testAccCheckServiceLevelObjectiveDestroy(ctx),
+		Steps: []resource.TestStep{
+			{
+				Config: testAccServiceLevelObjectiveConfig_full(rName),
+				Check: resource.ComposeAggregateTestCheckFunc(
+					testAccCheckServiceLevelObjectiveExists(ctx, resourceName, &servicelevelobjective),
+					resource.TestCheckResourceAttr(resourceName, "name", rName),
+					acctest.MatchResourceAttrRegionalARN(ctx, resourceName, names.AttrARN, "application-signals", regexache.MustCompile(`slo/`+rName)),
+				),
+			},
+			{
+				ResourceName:                         resourceName,
+				ImportState:                          true,
+				ImportStateIdFunc:                    testAccServiceLevelObjectiveImportStateIdFunc(resourceName),
+				ImportStateVerify:                    true,
+				ImportStateVerifyIdentifierAttribute: names.AttrName, // The attribute that uniquely identifies the resource
+				ImportStateVerifyIgnore:              []string{"apply_immediately", "user"},
+			},
+		},
+	})
+}
+
 func testAccCheckServiceLevelObjectiveDestroy(ctx context.Context) resource.TestCheckFunc {
 	return func(s *terraform.State) error {
 		conn := acctest.Provider.Meta().(*conns.AWSClient).ApplicationSignalsClient(ctx)
@@ -370,4 +412,77 @@ resource "aws_applicationsignals_service_level_objective" "test" {
   }
 }
 `, rName)
+}
+
+func testAccServiceLevelObjectiveConfig_full(rName string) string {
+	return fmt.Sprintf(`
+resource "aws_applicationsignals_service_level_objective" "test" {
+  name = %[1]q
+
+  goal {
+    interval {
+      rolling_interval {
+        duration_unit = "DAY"
+        duration      = 109
+      }
+    }
+    attainment_goal   = 99.98
+    warning_threshold = 99.9
+  }
+
+  request_based_sli {
+    request_based_sli_metric {
+      total_request_count_metric {
+        metric_stat {
+          metric {
+            namespace  = "AWS/Lambda"
+            metric_name = "Invocations"
+            dimensions {
+              name  = "FunctionName"
+              value = "my-lambda-lambda"
+            }
+          }
+          period = 60
+          stat = "Sum"
+        }
+        id = "asdf"
+        return_data = true
+      }
+      monitored_request_count_metric {
+        bad_count_metric {
+          id = "cwMetricNumerator"
+          metric_stat {
+            metric {
+              namespace  = "AWS/jjj"
+              metric_name = "aaaa"
+              dimensions {
+                name  = "llllll"
+                value = "my-lambda-lambda"
+              }
+            }
+            period = 60
+            stat   = "Sum"
+          }
+          return_data = true
+        }
+        bad_count_metric {
+          id = "pop"
+          metric_stat {
+            metric {
+              namespace  = "AWS/Lambda"
+              metric_name = "Errors"
+              dimensions {
+                name  = "Foioihame"
+                value = "my-lambda-pppppp"
+              }
+            }
+            period = 60
+            stat   = "Sum"
+          }
+          return_data = false
+        }
+      }
+    }
+  }
+}`, rName)
 }
