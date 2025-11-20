@@ -22,7 +22,7 @@ Manages an AWS Application Signals Service Level Objective.
 
 ## Example Usage
 
-### Basic Usage with an SLO (Period-Based)
+### Basic Usage with a Period-Based SLO
 
 ```terraform
 resource "aws_applicationsignals_service_level_objective" "example" {
@@ -122,18 +122,18 @@ resource "aws_applicationsignals_service_level_objective" "request_example" {
 
 The following arguments are required:
 
-* `name` - (Required) Name of this SLO. Must be unique for your AWS account and is **immutable** after creation.
+* `name` - (Required) Name of this SLO. Must be unique for your AWS account and is immutable after creation.
 * [`goal`](#goal) - (Required) Configuration block determining the goal of this SLO.
 
 The following arguments are optional:
 
 * `description` - (Optional) Brief description of the SLO.
 * [`burn_rate_configurations`](#burn_rate_configurations) - (Optional) Configuration block containing attributes that determine the burn rate of this SLO.
-* [`request_based_sli`](#request_based_sli) - (Optional) Configuration block for a **request-based** Service Level Indicator (SLI). Use this for metrics like success rate.
-* [`sli`](#sli) - (Optional) Configuration block for a **period-based** Service Level Indicator (SLI). Use this for metrics like latency.
+* [`request_based_sli`](#request_based_sli) - (Optional) Configuration block for a request-based Service Level Indicator (SLI)
+* [`sli`](#sli) - (Optional) Configuration block for a period-based Service Level Indicator (SLI).
 * `timeouts` - (Optional) Configuration block for setting operation timeouts.
 
-> You must specify **exactly one** of `sli` or `request_based_sli`.
+> You must specify exactly one `sli` or `request_based_sli`.
 
 ## Block Reference
 
@@ -150,15 +150,15 @@ The following arguments are required:
 The following arguments are supported:
 
 * `attainment_goal` - (Required) The percentage of time in the interval that the service must satisfy the SLI to achieve the attainment goal.
-* `warning_threshold` - (Required) The percentage of the attainment goal that is allowed to elapse before the user receives a warning.
 * [`interval`](#interval) - (Required) Configuration block defining the time period over which the SLO is evaluated.
+* `warning_threshold` - (Required) The percentage of the attainment goal that is allowed to elapse before the user receives a warning.
 
 ### interval
 
 The `interval` block must contain exactly one of the following blocks:
 
-* [`calendar_interval`](#calendar_interval) - Configuration block for a time interval that **starts at a specific time** and runs for a specified duration.
-* [`rolling_interval`](#rolling_interval) - Configuration block for a time interval that **rolls forward** by a specified duration.
+* [`calendar_interval`](#calendar_interval) - Configuration block for a time interval that starts at a specific time and runs for a specified duration.
+* [`rolling_interval`](#rolling_interval) - Configuration block for a time interval that rolls forward by a specified duration.
 
 ### calendar_interval
 
