@@ -216,9 +216,39 @@ This block defines the metrics for good and bad requests.
 
 ### good_count_metric
 
+A list of CloudWatch metric data queries. This is a **List Nested Block**.
+
+* `account_id` - (Optional) The ID of the account to use for the metric data query.
+* `expression` - (Optional) The math expression to use on the returned metric.
+* `id` - (Optional) A unique ID for the metric data query.
+* `label` - (Optional) The label for the metric.
+* `period` - (Optional) The period, in seconds, over which the metric is aggregated.
+* `return_data` - (Optional) Whether to return the metric data.
+* [`metric_stat`](#metric_stat) - (Optional) Configuration block for a CloudWatch metric and statistic.
+
 ### bad_count_metric
 
+A list of CloudWatch metric data queries. This is a **List Nested Block**.
+
+* `account_id` - (Optional) The ID of the account to use for the metric data query.
+* `expression` - (Optional) The math expression to use on the returned metric.
+* `id` - (Optional) A unique ID for the metric data query.
+* `label` - (Optional) The label for the metric.
+* `period` - (Optional) The period, in seconds, over which the metric is aggregated.
+* `return_data` - (Optional) Whether to return the metric data.
+* [`metric_stat`](#metric_stat) - (Optional) Configuration block for a CloudWatch metric and statistic.
+
 ### total_request_count_metric
+
+A list of CloudWatch metric data queries. This is a **List Nested Block**.
+
+* `account_id` - (Optional) The ID of the account to use for the metric data query.
+* `expression` - (Optional) The math expression to use on the returned metric.
+* `id` - (Optional) A unique ID for the metric data query.
+* `label` - (Optional) The label for the metric.
+* `period` - (Optional) The period, in seconds, over which the metric is aggregated.
+* `return_data` - (Optional) Whether to return the metric data.
+* [`metric_stat`](#metric_stat) - (Optional) Configuration block for a CloudWatch metric and statistic.
 
 ### dependency_config
 
