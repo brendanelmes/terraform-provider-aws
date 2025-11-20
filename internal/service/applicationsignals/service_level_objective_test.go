@@ -26,68 +26,6 @@ import (
 	tfapplicationsignals "github.com/hashicorp/terraform-provider-aws/internal/service/applicationsignals"
 )
 
-// TIP: File Structure. The basic outline for all test files should be as
-// follows. Improve this resource's maintainability by following this
-// outline.
-//
-// 1. Package declaration (add "_test" since this is a test file)
-// 2. Imports
-// 3. Unit tests
-// 4. Basic test
-// 5. Disappears test
-// 6. All the other tests
-// 7. Helper functions (exists, destroy, check, etc.)
-// 8. Functions that return Terraform configurations
-
-//func TestServiceLevelObjectiveExampleUnitTest(t *testing.T) {
-//	t.Parallel()
-//
-//	testCases := []struct {
-//		TestName string
-//		Input    string
-//		Expected string
-//		Error    bool
-//	}{
-//		{
-//			TestName: "empty",
-//			Input:    "",
-//			Expected: "",
-//			Error:    true,
-//		},
-//		{
-//			TestName: "descriptive name",
-//			Input:    "some input",
-//			Expected: "some output",
-//			Error:    false,
-//		},
-//		{
-//			TestName: "another descriptive name",
-//			Input:    "more input",
-//			Expected: "more output",
-//			Error:    false,
-//		},
-//	}
-//
-//	for _, testCase := range testCases {
-//		t.Run(testCase.TestName, func(t *testing.T) {
-//			t.Parallel()
-//			got, err := tfapplicationsignals.FunctionFromResource(testCase.Input)
-//
-//			if err != nil && !testCase.Error {
-//				t.Errorf("got error (%s), expected no error", err)
-//			}
-//
-//			if err == nil && testCase.Error {
-//				t.Errorf("got (%s) and no error, expected error", got)
-//			}
-//
-//			if got != testCase.Expected {
-//				t.Errorf("got %s, expected %s", got, testCase.Expected)
-//			}
-//		})
-//	}
-//}
-
 func TestAccApplicationSignalsServiceLevelObjective_basic(t *testing.T) {
 	ctx := acctest.Context(t)
 
@@ -251,7 +189,7 @@ func TestAccApplicationSignalsServiceLevelObjective_full(t *testing.T) {
 				ImportState:                          true,
 				ImportStateIdFunc:                    testAccServiceLevelObjectiveImportStateIdFunc(resourceName),
 				ImportStateVerify:                    true,
-				ImportStateVerifyIdentifierAttribute: names.AttrName, // The attribute that uniquely identifies the resource
+				ImportStateVerifyIdentifierAttribute: names.AttrName,
 				ImportStateVerifyIgnore:              []string{"apply_immediately", "user"},
 			},
 		},
