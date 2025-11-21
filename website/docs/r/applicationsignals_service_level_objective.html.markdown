@@ -118,8 +118,8 @@ The following arguments are required:
 The following arguments are optional:
 
 * `description` - (Optional) Brief description of the SLO.
-* [`burn_rate_configurations`](#burn_rate_configurations) - (Optional) Configuration block containing attributes that determine the burn rate of this SLO.
-* [`request_based_sli`](#request_based_sli) - (Optional) Configuration block for a request-based Service Level Indicator (SLI)
+* [`burn_rate_configurations`](#burn_rate_configurations) - (Optional) Configuration block containing attributes that determine the burn rates of this SLO.
+* [`request_based_sli`](#request_based_sli) - (Optional) Configuration block for a request-based Service Level Indicator (SLI).
 * [`sli`](#sli) - (Optional) Configuration block for a period-based Service Level Indicator (SLI).
 * `timeouts` - (Optional) Configuration block for setting operation timeouts.
 
@@ -129,19 +129,13 @@ The following arguments are optional:
 
 ### burn_rate_configurations
 
-This argument is processed in [attribute-as-blocks mode](https://www.terraform.io/docs/configuration/attr-as-blocks.html).
-
-The following arguments are required:
-
 * `look_back_window_minutes` - (Required) The number of minutes to use as the look back window for calculating the burn rate.
 
 ### goal
 
-The following arguments are supported:
-
-* `attainment_goal` - (Required) The percentage of time in the interval that the service must satisfy the SLI to achieve the attainment goal.
-* [`interval`](#interval) - (Required) Configuration block defining the time period over which the SLO is evaluated.
-* `warning_threshold` - (Required) The percentage of the attainment goal that is allowed to elapse before the user receives a warning.
+* `attainment_goal` - (Required) The threshold that determines if the goal is being met.
+* [`interval`](#interval) - (Required) Configuration block defining the time period used to evaluate the SLO.
+* `warning_threshold` - (Required) The percentage of remaining budget over total budget that you want to get warnings for.
 
 ### interval
 
@@ -154,7 +148,7 @@ The `interval` block must contain exactly one of the following blocks:
 
 * `duration` - (Required) The duration of the calendar interval.
 * `duration_unit` - (Required) The unit of time for the duration (`MINUTE`, `HOUR`, `DAY`, or `MONTH`).
-* `start_time` - (Required) The start time of the first interval in **RFC3339** format (e.g., `2024-01-01T00:00:00Z`).
+* `start_time` - (Required) The date and time when you want the first interval to start in **RFC3339** format (e.g., `2024-01-01T00:00:00Z`).
 
 ### rolling_interval
 
@@ -163,101 +157,93 @@ The `interval` block must contain exactly one of the following blocks:
 
 ### sli
 
-Use this block to define an SLO based on a single metric, typically for latency or error rate where a single metric is compared to a threshold.
-
-* `comparison_operator` - (Optional) The arithmetic operation to use when comparing the SLI metric value to the `metric_threshold`.
+* `comparison_operator` - (Optional) The arithmetic operation to use when comparing the specified metric to the threshold.
 * `metric_threshold` - (Optional) The value the SLI metric value is compared to.
 * [`sli_metric`](#sli_metric) - (Optional) Configuration block defining the metric for this period-based SLI.
 
 ### sli_metric
 
-* [`dependency_config`](#dependency_config) - (Optional) Configuration block for filtering metrics for a dependency.
-* `key_attributes` - (Optional) A map of key-value pairs that are used to filter the application's metric. (Type: `map(string)`)
+* [`dependency_config`](#dependency_config) - (Optional) Configuration block for identifying the dependency.
+* `key_attributes` - (Optional) A map of key-value pairs to specify which service this SLO metric is related to.
 * [`metric_data_queries`](#metric_data_queries) - (Optional) Configuration block for a list of CloudWatch metric data queries.
 * `metric_name` - (Optional) The name of the CloudWatch metric to use.
-* `metric_type` - (Optional) The metric type for the SLI. Valid values include `Availability`, `Latency`, `Fault`, `RequestCount`.
-* `operation_name` - (Optional) The name of the operation this SLO applies to.
+* `metric_type` - (Optional) The metric type that Application Signals collects. Must be either `AVAILABILITY` or `LATENCY`.
+* `operation_name` - (Optional) If the SLO is to monitor a specific operation of the service, use this field to specify the name of that operation.
 * `period_seconds` - (Optional) The number of seconds to use as the period for the CloudWatch metric.
-* `statistic` - (Optional) The statistic to use for the CloudWatch metric.
+* `statistic` - (Optional) The statistic to use for comparison to the threshold.
 
 ### request_based_sli
 
-Use this block to define an SLO based on the ratio of good or bad requests to total requests.
-
-* `comparison_operator` - (Optional) The arithmetic operation to use when comparing the success rate to the `metric_threshold`.
+* `comparison_operator` - (Optional) The arithmetic operation to use when comparing the specified metric to the threshold.
 * `metric_threshold` - (Optional) The percentage success rate the comparison operator is compared to.
 * [`request_based_sli_metric`](#request_based_sli_metric) - (Optional) Configuration block defining the metrics for this request-based SLI.
 
 ### request_based_sli_metric
 
-* [`dependency_config`](#dependency_config) - (Optional) Configuration block for filtering metrics for a dependency.
-* `key_attributes` - (Optional) A map of key-value pairs that are used to filter the application's metric.
-* `metric_type` - (Optional) The metric type for the SLI. Currently only `RequestCount` is supported.
-* [`monitored_request_count_metric`](#monitored_request_count_metric) - (Optional) Configuration block defining the good and bad request count metrics.
-* `operation_name` - (Optional) The name of the operation this SLO applies to.
-* [`total_request_count_metric`](#total_request_count_metric) - (Optional) Configuration block for the total request count metric, as a list of metric data queries.
+* [`dependency_config`](#dependency_config) - (Optional) Configuration block for identifying the dependency.
+* `key_attributes` - (Optional) A map of key-value pairs to specify which service this SLO metric is related to.
+* `metric_type` - (Optional) The metric type that Application Signals collects. Must be either `AVAILABILITY` or `LATENCY`.
+* [`monitored_request_count_metric`](#monitored_request_count_metric) - (Optional) Configuration block defining the good or bad request value for a request-based SLO.
+* `operation_name` - (Optional) If the SLO is to monitor a specific operation of the service, use this field to specify the name of that operation.
+* [`total_request_count_metric`](#total_request_count_metric) - (Optional) Configuration block for the metric to be used as the total requests for a request-based SLO.
 
 ### monitored_request_count_metric
-
-This block defines the metrics for good and bad requests.
 
 * [`good_count_metric`](#good_count_metric) - (Optional) Configuration block for the metric that counts good requests.
 * [`bad_count_metric`](#bad_count_metric) - (Optional) Configuration block for the metric that counts bad requests.
 
 ### good_count_metric
 
-A list of CloudWatch metric data queries. This is a **List Nested Block**.
+You must specify either `expression` or `metric_stat` but not both.
 
-* `account_id` - (Optional) The ID of the account to use for the metric data query.
-* `expression` - (Optional) The math expression to use on the returned metric.
-* `id` - (Optional) A unique ID for the metric data query.
-* `label` - (Optional) The label for the metric.
-* `period` - (Optional) The period, in seconds, over which the metric is aggregated.
+* `account_id` - (Optional) The ID of the account where this metric is located.
+* `expression` - (Optional) A metric math expression to be performed on the other metrics.
+* `id` - (Optional) An ID (unique within the outer block) for the metric data query.
+* `label` - (Optional) A human-readable label for this metric or expression.
+* `period` - (Optional) The granularity, in seconds, of the returned data points for this metric.
 * `return_data` - (Optional) Whether to return the metric data.
-* [`metric_stat`](#metric_stat) - (Optional) Configuration block for a CloudWatch metric and statistic.
+* [`metric_stat`](#metric_stat) - (Optional) Configuration block for a metric to be used directly for the SLO, or to be used in the math expression that will be used for the SLO.
 
 ### bad_count_metric
 
-A list of CloudWatch metric data queries. This is a **List Nested Block**.
+You must specify either `expression` or `metric_stat` but not both.
 
-* `account_id` - (Optional) The ID of the account to use for the metric data query.
-* `expression` - (Optional) The math expression to use on the returned metric.
-* `id` - (Optional) A unique ID for the metric data query.
-* `label` - (Optional) The label for the metric.
-* `period` - (Optional) The period, in seconds, over which the metric is aggregated.
+* `account_id` - (Optional) The ID of the account where this metric is located.
+* `expression` - (Optional) A metric math expression to be performed on the other metrics.
+* `id` - (Optional) An ID (unique within the outer block) for the metric data query.
+* `label` - (Optional) A human-readable label for this metric or expression.
+* `period` - (Optional) The granularity, in seconds, of the returned data points for this metric.
 * `return_data` - (Optional) Whether to return the metric data.
-* [`metric_stat`](#metric_stat) - (Optional) Configuration block for a CloudWatch metric and statistic.
+* [`metric_stat`](#metric_stat) - (Optional) Configuration block for a metric to be used directly for the SLO, or to be used in the math expression that will be used for the SLO.
 
 ### total_request_count_metric
 
-A list of CloudWatch metric data queries. This is a **List Nested Block**.
+You must specify either `expression` or `metric_stat` but not both.
 
-* `account_id` - (Optional) The ID of the account to use for the metric data query.
-* `expression` - (Optional) The math expression to use on the returned metric.
-* `id` - (Optional) A unique ID for the metric data query.
-* `label` - (Optional) The label for the metric.
-* `period` - (Optional) The period, in seconds, over which the metric is aggregated.
+* `account_id` - (Optional) The ID of the account where this metric is located.
+* `expression` - (Optional) A metric math expression to be performed on the other metrics.
+* `id` - (Optional) An ID (unique within the outer block) for the metric data query.
+* `label` - (Optional) A human-readable label for this metric or expression.
+* `period` - (Optional) The granularity, in seconds, of the returned data points for this metric.
 * `return_data` - (Optional) Whether to return the metric data.
-* [`metric_stat`](#metric_stat) - (Optional) Configuration block for a CloudWatch metric and statistic.
+* [`metric_stat`](#metric_stat) - (Optional) Configuration block for a metric to be used directly for the SLO, or to be used in the math expression that will be used for the SLO.
 
 ### dependency_config
 
-Configuration for filtering metrics related to a specific dependency.
-
-* `dependency_key_attributes` - (Required) A map of key-value pairs that are used to filter the dependency's metric. (Type: `map(string)`)
-* `dependency_operation_name` - (Required) The name of the operation for the dependency.
+* `dependency_key_attributes` - (Required) A map of key-value pairs to identify the dependency.
+* `dependency_operation_name` - (Required) The name of the called operation in the dependency.
 
 ### metric_data_queries
 
-A list of CloudWatch metric data queries. This is a **List Nested Block**.
+You must specify either `expression` or `metric_stat` but not both.
 
-* `account_id` - (Optional) The ID of the account to use for the metric data query.
-* `expression` - (Optional) The math expression to use on the returned metric.
-* `id` - (Optional) A unique ID for the metric data query.
-* `label` - (Optional) The label for the metric.
-* `period` - (Optional) The period, in seconds, over which the metric is aggregated.
+* `account_id` - (Optional) The ID of the account where this metric is located.
+* `expression` - (Optional) A metric math expression to be performed on the other metrics.
+* `id` - (Optional) An ID (unique within the outer block) for the metric data query.
+* `label` - (Optional) A human-readable label for this metric or expression.
+* `period` - (Optional) The granularity, in seconds, of the returned data points for this metric.
 * `return_data` - (Optional) Whether to return the metric data.
-* [`metric_stat`](#metric_stat) - (Optional) Configuration block for a CloudWatch metric and statistic.
+* [`metric_stat`](#metric_stat) - (Optional) Configuration block for a metric to be used directly for the SLO, or to be used in the math expression that will be used for the SLO.
 
 ### metric_stat
 
@@ -268,13 +254,11 @@ A list of CloudWatch metric data queries. This is a **List Nested Block**.
 
 ### metric
 
-* [`dimensions`](#dimensions) - (Optional) A list of dimensions for the CloudWatch metric.
-* `metric_name` - (Optional) The name of the CloudWatch metric.
-* `namespace` - (Optional) The namespace of the CloudWatch metric.
+* [`dimensions`](#dimensions) - (Optional) A configuration block defining one or more dimensions to use to define the metric that you want to use.
+* `metric_name` - (Optional) The name of the metric to use.
+* `namespace` - (Optional) The namespace of the metric.
 
 ### dimensions
-
-A list of metric dimensions. This is a **List Nested Block**.
 
 * `name` - (Required) The name of the dimension.
 * `value` - (Required) The value of the dimension.
@@ -286,7 +270,7 @@ This resource exports the following attributes in addition to the arguments abov
 * `arn` - ARN of the Service Level Objective.
 * `created_time` - The date and time that this SLO was created (RFC3339 format).
 * `last_updated_time` - The time that this SLO was most recently updated (RFC3339 format).
-* `evaluation_type` - Displays whether this is a `PERIOD_BASED` SLO or a `REQUEST_BASED` SLO.
+* `evaluation_type` - Displays whether this is a period-based SLO or a request-based SLO.
 * `metric_source_type` - Displays the source of the SLI metric for this SLO.
 
 ## Timeouts
