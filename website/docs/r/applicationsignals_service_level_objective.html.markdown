@@ -147,13 +147,13 @@ The `interval` block must contain exactly one of the following blocks:
 ### calendar_interval
 
 * `duration` - (Required) The duration of the calendar interval.
-* `duration_unit` - (Required) The unit of time for the duration (`MINUTE`, `HOUR`, `DAY`, or `MONTH`).
+* `duration_unit` - (Required) The unit of time for the duration (`MINUTE`, `HOUR`, `DAY`, `MONTH`).
 * `start_time` - (Required) The date and time when you want the first interval to start in **RFC3339** format (e.g., `2024-01-01T00:00:00Z`).
 
 ### rolling_interval
 
 * `duration` - (Required) The duration of the rolling interval.
-* `duration_unit` - (Required) The unit of time for the duration (`MINUTE`, `HOUR`, or `DAY`).
+* `duration_unit` - (Required) The unit of time for the duration (`MINUTE`, `HOUR`, `DAY`, `MONTH`).
 
 ### sli
 
