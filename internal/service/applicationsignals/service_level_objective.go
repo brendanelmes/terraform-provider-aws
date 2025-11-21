@@ -460,6 +460,78 @@ func flattenTimePtr(t *time.Time) timetypes.RFC3339 {
 	return timetypes.NewRFC3339ValueMust(t.Format(time.RFC3339))
 }
 
+func expandBurnRateConfigurations(ctx context.Context, v fwtypes.ListNestedObjectValueOf[burnRateConfigurationModel], diags *diag.Diagnostics) []awstypes.BurnRateConfiguration {
+	if v.IsNull() {
+		return nil
+	}
+	var models []burnRateConfigurationModel
+	diags.Append(v.ElementsAs(ctx, &models, false)...)
+	if diags.HasError() {
+		return nil
+	}
+
+	burns := make([]awstypes.BurnRateConfiguration, len(models))
+	for i, c := range models {
+		burns[i] = awstypes.BurnRateConfiguration{
+			LookBackWindowMinutes: c.LookBackWindowMinutes.ValueInt32Pointer(),
+		}
+	}
+
+	return burns
+}
+
+func expandGoal(ctx context.Context, v fwtypes.ObjectValueOf[goalModel], diags *diag.Diagnostics) *awstypes.Goal {
+	if v.IsNull() {
+		return nil
+	}
+	goalData, d := v.ToPtr(ctx)
+	diags.Append(d...)
+	if diags.HasError() {
+		return nil
+	}
+
+	var goal awstypes.Goal
+	diags.Append(flex.Expand(ctx, goalData, &goal)...)
+	if diags.HasError() {
+		return nil
+	}
+	return &goal
+}
+
+func expandSli(ctx context.Context, v fwtypes.ObjectValueOf[sliModel], diags *diag.Diagnostics) *awstypes.ServiceLevelIndicatorConfig {
+	if v.IsNull() {
+		return nil
+	}
+	sliData, d := v.ToPtr(ctx)
+	diags.Append(d...)
+	if diags.HasError() {
+		return nil
+	}
+	var sli awstypes.ServiceLevelIndicatorConfig
+	diags.Append(flex.Expand(ctx, sliData, &sli)...)
+	if diags.HasError() {
+		return nil
+	}
+	return &sli
+}
+
+func expandRequestBasedSli(ctx context.Context, v fwtypes.ObjectValueOf[requestBasedSliModel], diags *diag.Diagnostics) *awstypes.RequestBasedServiceLevelIndicatorConfig {
+	if v.IsNull() {
+		return nil
+	}
+	reqSliData, d := v.ToPtr(ctx)
+	diags.Append(d...)
+	if diags.HasError() {
+		return nil
+	}
+	var reqSli awstypes.RequestBasedServiceLevelIndicatorConfig
+	diags.Append(flex.Expand(ctx, reqSliData, &reqSli)...)
+	if diags.HasError() {
+		return nil
+	}
+	return &reqSli
+}
+
 var (
 	_ flex.Expander  = intervalModel{}
 	_ flex.Flattener = &intervalModel{}
@@ -690,146 +762,32 @@ func (m resourceServiceLevelObjectiveModel) ExpandTo(ctx context.Context, target
 
 func (m resourceServiceLevelObjectiveModel) expandToUpdateServiceLevelObjectiveInput(ctx context.Context) (any, diag.Diagnostics) {
 	var diags diag.Diagnostics
-	input := &applicationsignals.UpdateServiceLevelObjectiveInput{}
+
+	var input applicationsignals.UpdateServiceLevelObjectiveInput
 
 	input.Id = stringPtr(m.Name)
 	input.Description = stringPtr(m.Description)
+	input.BurnRateConfigurations = expandBurnRateConfigurations(ctx, m.BurnRateConfigurations, &diags)
+	input.Goal = expandGoal(ctx, m.Goal, &diags)
+	input.SliConfig = expandSli(ctx, m.Sli, &diags)
+	input.RequestBasedSliConfig = expandRequestBasedSli(ctx, m.RequestBasedSli, &diags)
 
-	if !m.Goal.IsNull() {
-		goalData, d := m.Goal.ToPtr(ctx)
-		diags.Append(d...)
-		if diags.HasError() {
-			return nil, diags
-		}
-
-		var goal awstypes.Goal
-		diags.Append(flex.Expand(ctx, goalData, &goal)...)
-		if diags.HasError() {
-			return nil, diags
-		}
-		input.Goal = &goal
-	}
-
-	if !m.BurnRateConfigurations.IsNull() {
-		var configs []burnRateConfigurationModel
-		diags.Append(m.BurnRateConfigurations.ElementsAs(ctx, &configs, false)...)
-		if diags.HasError() {
-			return nil, diags
-		}
-
-		burns := make([]awstypes.BurnRateConfiguration, len(configs))
-		for i, c := range configs {
-			burns[i] = awstypes.BurnRateConfiguration{
-				LookBackWindowMinutes: c.LookBackWindowMinutes.ValueInt32Pointer(),
-			}
-		}
-
-		input.BurnRateConfigurations = burns
-	}
-
-	if !m.Sli.IsNull() {
-		sliData, d := m.Sli.ToPtr(ctx)
-		diags.Append(d...)
-		if diags.HasError() {
-			return nil, diags
-		}
-
-		var sli awstypes.ServiceLevelIndicatorConfig
-		diags.Append(flex.Expand(ctx, sliData, &sli)...)
-		if diags.HasError() {
-			return nil, diags
-		}
-		input.SliConfig = &sli
-	}
-
-	if !m.RequestBasedSli.IsNull() {
-		reqSliData, d := m.RequestBasedSli.ToPtr(ctx)
-		diags.Append(d...)
-		if diags.HasError() {
-			return nil, diags
-		}
-
-		var reqSli awstypes.RequestBasedServiceLevelIndicatorConfig
-		diags.Append(flex.Expand(ctx, reqSliData, &reqSli)...)
-		if diags.HasError() {
-			return nil, diags
-		}
-		input.RequestBasedSliConfig = &reqSli
-	}
-
-	return input, diags
+	return &input, diags
 }
 
 func (m resourceServiceLevelObjectiveModel) expandToCreateServiceLevelObjectiveInput(ctx context.Context) (any, diag.Diagnostics) {
 	var diags diag.Diagnostics
-	input := &applicationsignals.CreateServiceLevelObjectiveInput{}
+
+	var input applicationsignals.CreateServiceLevelObjectiveInput
 
 	input.Name = stringPtr(m.Name)
 	input.Description = stringPtr(m.Description)
+	input.BurnRateConfigurations = expandBurnRateConfigurations(ctx, m.BurnRateConfigurations, &diags)
+	input.Goal = expandGoal(ctx, m.Goal, &diags)
+	input.SliConfig = expandSli(ctx, m.Sli, &diags)
+	input.RequestBasedSliConfig = expandRequestBasedSli(ctx, m.RequestBasedSli, &diags)
 
-	if !m.BurnRateConfigurations.IsNull() {
-		var configs []burnRateConfigurationModel
-		diags.Append(m.BurnRateConfigurations.ElementsAs(ctx, &configs, false)...)
-		if diags.HasError() {
-			return nil, diags
-		}
-
-		burns := make([]awstypes.BurnRateConfiguration, len(configs))
-		for i, c := range configs {
-			burns[i] = awstypes.BurnRateConfiguration{
-				LookBackWindowMinutes: c.LookBackWindowMinutes.ValueInt32Pointer(),
-			}
-		}
-
-		input.BurnRateConfigurations = burns
-	}
-
-	if !m.Goal.IsNull() {
-		goalData, d := m.Goal.ToPtr(ctx)
-		diags.Append(d...)
-		if diags.HasError() {
-			return nil, diags
-		}
-
-		var goal awstypes.Goal
-		diags.Append(flex.Expand(ctx, goalData, &goal)...)
-		if diags.HasError() {
-			return nil, diags
-		}
-		input.Goal = &goal
-	}
-
-	if !m.Sli.IsNull() {
-		sliData, d := m.Sli.ToPtr(ctx)
-		diags.Append(d...)
-		if diags.HasError() {
-			return nil, diags
-		}
-
-		var sli awstypes.ServiceLevelIndicatorConfig
-		diags.Append(flex.Expand(ctx, sliData, &sli)...)
-		if diags.HasError() {
-			return nil, diags
-		}
-		input.SliConfig = &sli
-	}
-
-	if !m.RequestBasedSli.IsNull() {
-		reqSliData, d := m.RequestBasedSli.ToPtr(ctx)
-		diags.Append(d...)
-		if diags.HasError() {
-			return nil, diags
-		}
-
-		var reqSli awstypes.RequestBasedServiceLevelIndicatorConfig
-		diags.Append(flex.Expand(ctx, reqSliData, &reqSli)...)
-		if diags.HasError() {
-			return nil, diags
-		}
-		input.RequestBasedSliConfig = &reqSli
-	}
-
-	return input, diags
+	return &input, diags
 }
 
 func (m *resourceServiceLevelObjectiveModel) Flatten(ctx context.Context, v any) diag.Diagnostics {
