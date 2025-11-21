@@ -174,35 +174,35 @@ Use this block to define an SLO based on a single metric, typically for latency 
 * [`dependency_config`](#dependency_config) - (Optional) Configuration block for filtering metrics for a dependency.
 * `key_attributes` - (Optional) A map of key-value pairs that are used to filter the application's metric. (Type: `map(string)`)
 * [`metric_data_queries`](#metric_data_queries) - (Optional) Configuration block for a list of CloudWatch metric data queries.
-* `metric_name` - (Optional) The name of the CloudWatch metric to use. (Type: `string`)
-* `metric_type` - (Optional) The metric type for the SLI. Valid values include `Availability`, `Latency`, `Fault`, `RequestCount`. (Type: `string`)
-* `operation_name` - (Optional) The name of the operation this SLO applies to. (Type: `string`)
-* `period_seconds` - (Optional) The number of seconds to use as the period for the CloudWatch metric. (Type: `number` - Int32)
-* `statistic` - (Optional) The statistic to use for the CloudWatch metric. (Type: `string`)
+* `metric_name` - (Optional) The name of the CloudWatch metric to use.
+* `metric_type` - (Optional) The metric type for the SLI. Valid values include `Availability`, `Latency`, `Fault`, `RequestCount`.
+* `operation_name` - (Optional) The name of the operation this SLO applies to.
+* `period_seconds` - (Optional) The number of seconds to use as the period for the CloudWatch metric.
+* `statistic` - (Optional) The statistic to use for the CloudWatch metric.
 
 ### request_based_sli
 
 Use this block to define an SLO based on the ratio of good or bad requests to total requests.
 
-* `comparison_operator` - (Optional) The arithmetic operation to use when comparing the success rate to the `metric_threshold`. (Type: `string`)
-* `metric_threshold` - (Optional) The percentage success rate the comparison operator is compared to. (Type: `number` - Float64)
+* `comparison_operator` - (Optional) The arithmetic operation to use when comparing the success rate to the `metric_threshold`.
+* `metric_threshold` - (Optional) The percentage success rate the comparison operator is compared to.
 * [`request_based_sli_metric`](#request_based_sli_metric) - (Optional) Configuration block defining the metrics for this request-based SLI.
 
 ### request_based_sli_metric
 
 * [`dependency_config`](#dependency_config) - (Optional) Configuration block for filtering metrics for a dependency.
-* `key_attributes` - (Optional) A map of key-value pairs that are used to filter the application's metric. (Type: `map(string)`)
-* `metric_type` - (Optional) The metric type for the SLI. Currently only `RequestCount` is supported. (Type: `string`)
+* `key_attributes` - (Optional) A map of key-value pairs that are used to filter the application's metric.
+* `metric_type` - (Optional) The metric type for the SLI. Currently only `RequestCount` is supported.
 * [`monitored_request_count_metric`](#monitored_request_count_metric) - (Optional) Configuration block defining the good and bad request count metrics.
-* `operation_name` - (Optional) The name of the operation this SLO applies to. (Type: `string`)
+* `operation_name` - (Optional) The name of the operation this SLO applies to.
 * [`total_request_count_metric`](#total_request_count_metric) - (Optional) Configuration block for the total request count metric, as a list of metric data queries.
 
 ### monitored_request_count_metric
 
 This block defines the metrics for good and bad requests.
 
-* [`good_count_metric`](#good_count_metric) - (Optional) Configuration block for the metric that counts **good** requests.
-* [`bad_count_metric`](#bad_count_metric) - (Optional) Configuration block for the metric that counts **bad** requests.
+* [`good_count_metric`](#good_count_metric) - (Optional) Configuration block for the metric that counts good requests.
+* [`bad_count_metric`](#bad_count_metric) - (Optional) Configuration block for the metric that counts bad requests.
 
 ### good_count_metric
 
