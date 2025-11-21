@@ -5,16 +5,6 @@ page_title: "AWS: aws_applicationsignals_service_level_objective"
 description: |-
   Manages an AWS Application Signals Service Level Objective.
 ---
-<!---
-Documentation guidelines:
-- Begin resource descriptions with "Manages..."
-- Use simple language and avoid jargon
-- Focus on brevity and clarity
-- Use present tense and active voice
-- Don't begin argument/attribute descriptions with "An", "The", "Defines", "Indicates", or "Specifies"
-- Boolean arguments should begin with "Whether to"
-- Use "example" instead of "test" in examples
---->
 
 # Resource: aws_applicationsignals_service_level_objective
 
@@ -42,7 +32,6 @@ resource "aws_applicationsignals_service_level_objective" "example" {
     comparison_operator = "LessThan"
     metric_threshold    = 2
     sli_metric {
-      metric_type = "Latency"
       metric_data_queries {
         id = "m1"
         metric_stat {
@@ -67,48 +56,49 @@ resource "aws_applicationsignals_service_level_objective" "example" {
 ### Request-Based SLO Usage
 
 ```terraform
-resource "aws_applicationsignals_service_level_objective" "request_example" {
-  name        = "request-success-rate"
+resource "aws_applicationsignals_service_level_objective" "example" {
+  name        = "lambda-success-rate"
   description = "Success rate of 99.9% for a specific operation over a calendar month"
   goal {
     interval {
-      calendar_interval {
+      rolling_interval {
         duration      = 1
-        duration_unit = "MONTH"
-        start_time    = "2024-01-01T00:00:00Z" # RFC3339 format
+        duration_unit = "DAY"
       }
     }
     attainment_goal   = 99.90
     warning_threshold = 50.0
   }
   request_based_sli {
-    comparison_operator = "GreaterThanOrEqualTo"
-    metric_threshold    = 99.9
     request_based_sli_metric {
-      operation_name = "Login"
-      metric_type    = "RequestCount"
-      monitored_request_count_metric {
-        good_count_metric {
-          id = "good_requests"
-          metric_stat {
-            metric {
-              namespace   = "AWS/ApplicationSignals"
-              metric_name = "RequestCount"
+      total_request_count_metric {
+        metric_stat {
+          metric {
+            namespace  = "AWS/Lambda"
+            metric_name = "Invocations"
+            dimensions {
+              name  = "Dimension1"
+              value = "my-dimension-name"
             }
-            period = 60
-            stat   = "Sum"
           }
+          period = 60
+          stat = "Sum"
         }
+        id = "total_requests"
+        return_data = true
+      }
+      monitored_request_count_metric {
         bad_count_metric {
-          id = "bad_requests"
           metric_stat {
             metric {
-              namespace   = "AWS/ApplicationSignals"
+              namespace   = "AWS/Lambda"
               metric_name = "ErrorCount"
             }
             period = 60
             stat   = "Sum"
           }
+          id = "bad_requests"
+          return_data = true
         }
       }
     }
