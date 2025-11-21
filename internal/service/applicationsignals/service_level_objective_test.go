@@ -305,9 +305,8 @@ resource "aws_applicationsignals_service_level_objective" "test" {
   }
   sli {
     sli_metric {
-      metric_type = ""
       metric_data_queries {
-        id = "asdfasdf"
+        id = "m1"
         expression = "FILL(METRICS(), 0)"
         period = 60
         return_data = true
@@ -337,9 +336,8 @@ resource "aws_applicationsignals_service_level_objective" "test" {
   }
   sli {
     sli_metric {
-      metric_type = ""
       metric_data_queries {
-        id = "asdfasdf"
+        id = "m1"
         expression = "FILL(METRICS(), 0)"
         period = 60
         return_data = true
@@ -356,6 +354,10 @@ func testAccServiceLevelObjectiveConfig_full(rName string) string {
 	return fmt.Sprintf(`
 resource "aws_applicationsignals_service_level_objective" "test" {
   name = %[1]q
+
+  burn_rate_configurations {
+    look_back_window_minutes = 60
+  }
 
   goal {
     interval {
@@ -376,14 +378,14 @@ resource "aws_applicationsignals_service_level_objective" "test" {
             namespace  = "AWS/Lambda"
             metric_name = "Invocations"
             dimensions {
-              name  = "FunctionName"
-              value = "my-lambda-lambda"
+              name  = "Dimension1"
+              value = "my-dimension-name"
             }
           }
           period = 60
           stat = "Sum"
         }
-        id = "asdf"
+        id = "total"
         return_data = true
       }
       monitored_request_count_metric {
@@ -391,11 +393,11 @@ resource "aws_applicationsignals_service_level_objective" "test" {
           id = "cwMetricNumerator"
           metric_stat {
             metric {
-              namespace  = "AWS/jjj"
-              metric_name = "aaaa"
+              namespace  = "AWS/ApplicationELB"
+              metric_name = "HTTPCode_Target_5XX_Count"
               dimensions {
-                name  = "llllll"
-                value = "my-lambda-lambda"
+                name  = "LoadBalancer"
+                value = "my-load-balancer"
               }
             }
             period = 60
@@ -410,8 +412,8 @@ resource "aws_applicationsignals_service_level_objective" "test" {
               namespace  = "AWS/Lambda"
               metric_name = "Errors"
               dimensions {
-                name  = "Foioihame"
-                value = "my-lambda-pppppp"
+                name  = "LoadBalancer"
+                value = "another-load-balancer"
               }
             }
             period = 60
