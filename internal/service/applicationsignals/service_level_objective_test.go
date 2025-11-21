@@ -81,8 +81,6 @@ func TestAccApplicationSignalsServiceLevelObjective_disappears(t *testing.T) {
 	resource.ParallelTest(t, resource.TestCase{
 		PreCheck: func() {
 			acctest.PreCheck(ctx, t)
-			// TODO - work out why this precheck fails even though sdk can create SLOs...
-			//acctest.PreCheckPartitionHasService(t, names.ApplicationSignalsEndpointID)
 			testAccPreCheck(ctx, t)
 		},
 		ErrorCheck:               acctest.ErrorCheck(t, names.ApplicationSignalsServiceID),
@@ -118,8 +116,6 @@ func TestAccApplicationSignalsServiceLevelObjective_update(t *testing.T) {
 	resource.ParallelTest(t, resource.TestCase{
 		PreCheck: func() {
 			acctest.PreCheck(ctx, t)
-			// TODO - work out why this precheck fails even though sdk can create SLOs...
-			//acctest.PreCheckPartitionHasService(t, names.ApplicationSignalsServiceID)
 			testAccPreCheck(ctx, t)
 		},
 		ErrorCheck:               acctest.ErrorCheck(t, names.ApplicationSignalsServiceID),
@@ -168,8 +164,6 @@ func TestAccApplicationSignalsServiceLevelObjective_full(t *testing.T) {
 	resource.ParallelTest(t, resource.TestCase{
 		PreCheck: func() {
 			acctest.PreCheck(ctx, t)
-			// TODO - work out why this precheck fails even though sdk can create SLOs...
-			//acctest.PreCheckPartitionHasService(t, names.ApplicationSignalsServiceID)
 			testAccPreCheck(ctx, t)
 		},
 		ErrorCheck:               acctest.ErrorCheck(t, names.ApplicationSignalsServiceID),
