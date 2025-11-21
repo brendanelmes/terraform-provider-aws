@@ -978,7 +978,7 @@ type sliMetricModel struct {
 	KeyAttributes     fwtypes.MapOfString                                   `tfsdk:"key_attributes"`
 	MetricDataQueries fwtypes.ListNestedObjectValueOf[metricDataQueryModel] `tfsdk:"metric_data_queries"`
 	MetricName        types.String                                          `tfsdk:"metric_name"`
-	MetricType        types.String                                          `tfsdk:"metric_type"`
+	MetricType        types.String                                          `tfsdk:"metric_type" autoflex:",omitempty"`
 	OperationName     types.String                                          `tfsdk:"operation_name"`
 	PeriodSeconds     types.Int32                                           `tfsdk:"period_seconds"`
 	Statistic         types.String                                          `tfsdk:"statistic"`
